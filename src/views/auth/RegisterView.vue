@@ -33,6 +33,26 @@
               {{ error }}
             </div>
 
+            <!-- Foto da aluna -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Foto da aluna</label>
+              <div class="flex items-center gap-4">
+                <div class="w-24 h-24 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center flex-shrink-0">
+                  <img v-if="photoPreview" :src="photoPreview" alt="Preview" class="w-full h-full object-cover" />
+                  <UserCircleIcon v-else class="w-14 h-14 text-gray-400" />
+                </div>
+                <div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    @change="onPhotoChange"
+                    class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
+                  />
+                  <p class="text-xs text-gray-500 mt-1">JPG, PNG. Opcional.</p>
+                </div>
+              </div>
+            </div>
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">Nome Completo *</label>
@@ -130,18 +150,15 @@
             </div>
           </div>
 
-            <div class="flex gap-4">
+            <div>
               <button
                 type="submit"
                 :disabled="loading"
-                class="btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                class="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <span v-if="loading">Cadastrando...</span>
                 <span v-else>Cadastrar</span>
               </button>
-              <router-link to="/" class="btn-secondary">
-                Voltar
-              </router-link>
             </div>
           </form>
         </template>
@@ -154,10 +171,21 @@
 <script setup>
 import { ref } from 'vue'
 import { studentService } from '../../services/index.js'
+import Parse from '../../services/parse.js'
+import { UserCircleIcon } from '@heroicons/vue/24/outline'
 
 const loading = ref(false)
 const error = ref(null)
 const success = ref(false)
+const photoFile = ref(null)
+const photoPreview = ref(null)
+
+function onPhotoChange(e) {
+  const file = e.target.files?.[0]
+  photoFile.value = file || null
+  if (photoPreview.value) URL.revokeObjectURL(photoPreview.value)
+  photoPreview.value = file ? URL.createObjectURL(file) : null
+}
 
 const form = ref({
   name: '',
@@ -194,12 +222,16 @@ async function handleSubmit() {
       // Converter birthday de string para Date
       birthday: form.value.birthday ? new Date(form.value.birthday) : null,
       // Campos de alergia: hasAllergy é booleano, allergy é a descrição
-      hasAllergy: form.value.hasAllergy,
       allergy: form.value.hasAllergy ? form.value.allergy : ''
     }
     
     // Remover hasAllergy do payload (apenas controle do formulário, não vai para o banco)
     delete data.hasAllergy
+    
+    // Adicionar foto se uma foi selecionada
+    if (photoFile.value) {
+      data.photo = new Parse.File(photoFile.value.name, photoFile.value)
+    }
     
     // Registro público: cria como pendente (isPublicRegistration = true)
     await studentService.createStudent(data, true)
