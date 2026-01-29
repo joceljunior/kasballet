@@ -16,7 +16,12 @@
 
 ### 2. Configurar Variáveis de Ambiente
 
-No Railway, vá em **Variables** e adicione:
+⚠️ **IMPORTANTE:** No Vite, as variáveis de ambiente são substituídas em **TEMPO DE BUILD**. Elas precisam estar configuradas **ANTES** do Railway executar `npm run build`.
+
+**Passos:**
+
+1. No Railway, vá em **Settings** > **Variables**
+2. Adicione as seguintes variáveis (uma por vez ou todas de uma vez):
 
 ```
 VITE_PARSE_APPLICATION_ID=seu_application_id_aqui
@@ -31,6 +36,11 @@ VITE_PARSE_SERVER_URL=https://parseapi.back4app.com
   - **Application ID** → `VITE_PARSE_APPLICATION_ID`
   - **JavaScript Key** → `VITE_PARSE_JAVASCRIPT_KEY`
   - **Server URL** → `VITE_PARSE_SERVER_URL` (geralmente `https://parseapi.back4app.com`)
+
+3. **Após adicionar as variáveis, faça um NOVO DEPLOY:**
+   - Vá em **Deployments**
+   - Clique em **"Redeploy"** ou faça um novo commit/push para triggerar um novo build
+   - ⚠️ **Não basta apenas adicionar as variáveis** - é necessário fazer um novo build para que elas sejam incluídas no código
 
 ### 3. Deploy Automático
 
@@ -96,9 +106,35 @@ Este erro ocorre quando a variável `PORT` não está sendo expandida corretamen
 - No Railway, vá em **Settings** > **Variables** e verifique se `PORT` está sendo definida automaticamente
 - Como alternativa, adicione manualmente: `PORT=3000` (mas geralmente o Railway define automaticamente)
 
-### Erro: "Missing environment variables"
-- Verifique se todas as 3 variáveis de ambiente estão configuradas no Railway
-- Certifique-se de que os nomes estão corretos (começam com `VITE_`)
+### Erro: "Missing environment variables" ou "Parse SDK: Missing environment variables"
+
+Este erro significa que as variáveis de ambiente não estão disponíveis durante o build.
+
+**Solução:**
+
+1. **Verifique se as variáveis estão configuradas no Railway:**
+   - Vá em **Settings** > **Variables**
+   - Confirme que existem:
+     - `VITE_PARSE_APPLICATION_ID`
+     - `VITE_PARSE_JAVASCRIPT_KEY`
+     - `VITE_PARSE_SERVER_URL`
+
+2. **⚠️ IMPORTANTE: Faça um NOVO DEPLOY após adicionar as variáveis:**
+   - No Railway, vá em **Deployments**
+   - Clique em **"Redeploy"** ou faça um novo commit/push
+   - As variáveis só são incluídas no código durante o BUILD
+   - Se você adicionou as variáveis após o deploy, elas não estarão no código atual
+
+3. **Verifique os nomes das variáveis:**
+   - Devem começar com `VITE_` (obrigatório no Vite)
+   - Não devem ter espaços antes ou depois do `=`
+   - Exemplo correto: `VITE_PARSE_APPLICATION_ID=abc123`
+   - Exemplo errado: `VITE_PARSE_APPLICATION_ID = abc123` (espaços)
+
+4. **Verifique os logs de build:**
+   - No Railway, veja os logs do build
+   - Procure por mensagens sobre variáveis de ambiente
+   - Se as variáveis não aparecerem nos logs, elas não estão disponíveis durante o build
 
 ### Erro: "Parse SDK not initialized"
 - Confirme que as credenciais do Back4App estão corretas
