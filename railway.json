@@ -1,8 +1,8 @@
 {
   "$schema": "https://railway.app/railway.schema.json",
+  "$comment": "Railway configuration for Vue.js + Vite frontend",
   "build": {
-    "builder": "NIXPACKS",
-    "buildCommand": "npm run build"
+    "builder": "NIXPACKS"
   },
   "deploy": {
     "startCommand": "npx serve -s dist -l $PORT",
