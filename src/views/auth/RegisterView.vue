@@ -89,9 +89,15 @@
               <input v-model="form.complement" type="text" class="input" />
             </div>
 
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Alergias</label>
-              <input v-model="form.allergy" type="text" class="input" />
+            <div class="md:col-span-2">
+              <label class="flex items-center gap-3 cursor-pointer">
+                <input v-model="form.hasAllergy" type="checkbox" class="w-5 h-5 rounded border-gray-300 text-green-600 focus:ring-green-500" />
+                <span class="text-sm font-medium text-gray-700">Possui alguma alergia?</span>
+              </label>
+              <div v-if="form.hasAllergy" class="mt-3">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Descreva a(s) alergia(s) *</label>
+                <input v-model="form.allergy" type="text" :required="form.hasAllergy" class="input" placeholder="Ex: Amendoim, Lactose, etc." />
+              </div>
             </div>
 
             <div>
@@ -165,6 +171,7 @@ const form = ref({
   addressDistrict: '',
   addressCity: '',
   complement: '',
+  hasAllergy: false,
   allergy: '',
   nameResponsible: '',
   relationship: '',
@@ -181,8 +188,21 @@ async function handleSubmit() {
   success.value = false
 
   try {
+    // Preparar dados para envio
+    const data = {
+      ...form.value,
+      // Converter birthday de string para Date
+      birthday: form.value.birthday ? new Date(form.value.birthday) : null,
+      // Campos de alergia: hasAllergy é booleano, allergy é a descrição
+      hasAllergy: form.value.hasAllergy,
+      allergy: form.value.hasAllergy ? form.value.allergy : ''
+    }
+    
+    // Remover hasAllergy do payload (apenas controle do formulário, não vai para o banco)
+    delete data.hasAllergy
+    
     // Registro público: cria como pendente (isPublicRegistration = true)
-    await studentService.createStudent(form.value, true)
+    await studentService.createStudent(data, true)
     success.value = true
     // Fluxo termina aqui - apenas mostra a mensagem de agradecimento
   } catch (err) {
