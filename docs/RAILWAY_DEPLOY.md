@@ -84,6 +84,18 @@ Este erro geralmente ocorre quando o Railway não consegue detectar ou construir
 5. **Tente usar Dockerfile (alternativa)**
    - Se o NIXPACKS continuar falhando, podemos criar um Dockerfile
 
+### Erro: "Unknown --listen endpoint scheme (protocol): undefined"
+
+Este erro ocorre quando a variável `PORT` não está sendo expandida corretamente pelo `serve`. **Solução aplicada:**
+
+1. **Script `start.sh` criado** - Garante que a porta seja sempre um número válido
+2. **Todos os arquivos de configuração atualizados** para usar `sh start.sh`
+
+**Se o erro persistir:**
+- Certifique-se de que o arquivo `start.sh` está commitado e tem permissão de execução
+- No Railway, vá em **Settings** > **Variables** e verifique se `PORT` está sendo definida automaticamente
+- Como alternativa, adicione manualmente: `PORT=3000` (mas geralmente o Railway define automaticamente)
+
 ### Erro: "Missing environment variables"
 - Verifique se todas as 3 variáveis de ambiente estão configuradas no Railway
 - Certifique-se de que os nomes estão corretos (começam com `VITE_`)

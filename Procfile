@@ -1,1 +1,1 @@
-web: npx serve -s dist -l $PORT
+web: sh start.sh
