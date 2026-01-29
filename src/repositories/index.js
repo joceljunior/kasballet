@@ -495,7 +495,21 @@ export class UserRepository extends BaseRepository {
    * Login user
    */
   async login(username, password) {
-    return Parse.User.logIn(username, password)
+    try {
+      // O Parse SDK gerencia o InstallationController automaticamente
+      // Em produção, o Parse pode precisar criar o controller na primeira operação
+      return await Parse.User.logIn(username, password)
+    } catch (error) {
+      // Se houver erro relacionado ao InstallationController, tentar novamente
+      // após garantir que o Parse está totalmente inicializado
+      if (error.message && error.message.includes('currentInstallationId')) {
+        console.warn('Parse InstallationController error, retrying login...')
+        // Aguardar um pouco para o Parse inicializar o controller
+        await new Promise(resolve => setTimeout(resolve, 100))
+        return await Parse.User.logIn(username, password)
+      }
+      throw error
+    }
   }
 
   /**
