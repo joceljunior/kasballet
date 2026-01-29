@@ -33,6 +33,12 @@
               >
                 {{ expandedStudents.includes(student.id) ? 'Ocultar Detalhes' : 'Ver Detalhes' }}
               </button>
+              <router-link
+                :to="`/alunos/${student.id}/edit`"
+                class="btn-secondary"
+              >
+                Editar
+              </router-link>
               <button
                 @click="handleApprove(student.id)"
                 :disabled="studentStore.loading"
