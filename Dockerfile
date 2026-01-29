@@ -15,11 +15,8 @@ COPY . .
 # Build da aplicação
 RUN npm run build
 
-# Tornar o script executável
-RUN chmod +x start.sh
-
 # Expor porta (Railway define a variável PORT)
 EXPOSE 3000
 
 # Comando para servir a aplicação
-CMD ["sh", "start.sh"]
+CMD ["npm", "start"]
