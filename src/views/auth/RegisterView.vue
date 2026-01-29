@@ -28,7 +28,7 @@
             <p class="text-gray-600">Preencha os dados abaixo. Seu cadastro ficará pendente até aprovação.</p>
           </div>
 
-          <form @submit.prevent="handleSubmit" class="space-y-6">
+          <form @submit.prevent="handleSubmit" class="space-y-8">
             <div v-if="error" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
               {{ error }}
             </div>
@@ -53,104 +53,191 @@
               </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Nome Completo *</label>
-              <input v-model="form.name" type="text" required class="input" />
-            </div>
+            <!-- SEÇÃO: Dados da Aluna -->
+            <div class="border-t pt-6">
+              <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <UserCircleIcon class="w-5 h-5 text-green-600" />
+                Dados da Aluna
+              </h2>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Nome Completo *</label>
+                  <input v-model="form.name" type="text" required class="input" />
+                </div>
 
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">CPF *</label>
-              <input v-model="form.cpf" type="text" required class="input" />
-            </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Data de Nascimento *</label>
+                  <input v-model="form.birthday" type="date" required class="input" />
+                </div>
 
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Email *</label>
-              <input v-model="form.email" type="email" required class="input" />
-            </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Nacionalidade *</label>
+                  <input v-model="form.nationality" type="text" required class="input" />
+                </div>
 
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Telefone *</label>
-              <input v-model="form.telephone" type="tel" required class="input" />
-            </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Nome da Escola</label>
+                  <input v-model="form.schoolName" type="text" class="input" />
+                </div>
 
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Data de Nascimento *</label>
-              <input v-model="form.birthday" type="date" required class="input" />
-            </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Série/Ano Escolar</label>
+                  <input v-model="form.schoolGrade" type="text" class="input" placeholder="Ex: 3º ano, 1ª série..." />
+                </div>
 
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Nacionalidade *</label>
-              <input v-model="form.nationality" type="text" required class="input" />
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Endereço *</label>
-              <input v-model="form.address" type="text" required class="input" />
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Número *</label>
-              <input v-model.number="form.addressNumber" type="number" required class="input" />
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Bairro *</label>
-              <input v-model="form.addressDistrict" type="text" required class="input" />
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Cidade *</label>
-              <input v-model="form.addressCity" type="text" required class="input" />
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Complemento</label>
-              <input v-model="form.complement" type="text" class="input" />
-            </div>
-
-            <div class="md:col-span-2">
-              <label class="flex items-center gap-3 cursor-pointer">
-                <input v-model="form.hasAllergy" type="checkbox" class="w-5 h-5 rounded border-gray-300 text-green-600 focus:ring-green-500" />
-                <span class="text-sm font-medium text-gray-700">Possui alguma alergia?</span>
-              </label>
-              <div v-if="form.hasAllergy" class="mt-3">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Descreva a(s) alergia(s) *</label>
-                <input v-model="form.allergy" type="text" :required="form.hasAllergy" class="input" placeholder="Ex: Amendoim, Lactose, etc." />
+                <div class="md:col-span-2">
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Possui Alergia?</label>
+                  <div class="flex items-center gap-6">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                      <input type="radio" :value="true" v-model="form.hasAllergy" class="w-4 h-4 text-green-600 focus:ring-green-500" />
+                      <span class="text-sm text-gray-700">Sim</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                      <input type="radio" :value="false" v-model="form.hasAllergy" class="w-4 h-4 text-green-600 focus:ring-green-500" />
+                      <span class="text-sm text-gray-700">Não</span>
+                    </label>
+                  </div>
+                  <input 
+                    v-if="form.hasAllergy"
+                    v-model="form.allergy" 
+                    type="text" 
+                    class="input mt-3" 
+                    placeholder="Descreva a alergia (Ex: Amendoim, lactose...)" 
+                    :required="form.hasAllergy"
+                  />
+                </div>
               </div>
             </div>
 
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Nome do Responsável *</label>
-              <input v-model="form.nameResponsible" type="text" required class="input" />
+            <!-- SEÇÃO: Dados do Responsável -->
+            <div class="border-t pt-6">
+              <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                </svg>
+                Dados do Responsável
+              </h2>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Nome do Responsável *</label>
+                  <input v-model="form.nameResponsible" type="text" required class="input" />
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Parentesco *</label>
+                  <select v-model="form.relationship" required class="input">
+                    <option value="">Selecione</option>
+                    <option value="Mãe">Mãe</option>
+                    <option value="Pai">Pai</option>
+                    <option value="Avó">Avó</option>
+                    <option value="Avô">Avô</option>
+                    <option value="Tia">Tia</option>
+                    <option value="Tio">Tio</option>
+                    <option value="Outro">Outro</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">CPF do Responsável *</label>
+                  <input v-model="form.cpf" type="text" required class="input" />
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Email *</label>
+                  <input v-model="form.email" type="email" required class="input" />
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Telefone *</label>
+                  <input v-model="form.telephone" type="tel" required class="input" />
+                </div>
+              </div>
             </div>
 
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Parentesco *</label>
-              <select v-model="form.relationship" required class="input">
-                <option value="">Selecione</option>
-                <option value="Mãe">Mãe</option>
-                <option value="Pai">Pai</option>
-                <option value="Avó">Avó</option>
-                <option value="Avô">Avô</option>
-                <option value="Tia">Tia</option>
-                <option value="Tio">Tio</option>
-                <option value="Outro">Outro</option>
-              </select>
+            <!-- SEÇÃO: Endereço -->
+            <div class="border-t pt-6">
+              <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
+                Endereço
+              </h2>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="md:col-span-2">
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Endereço *</label>
+                  <input v-model="form.address" type="text" required class="input" />
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Número *</label>
+                  <input v-model.number="form.addressNumber" type="number" required class="input" />
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Complemento</label>
+                  <input v-model="form.complement" type="text" class="input" placeholder="Ex: Apt 101, Bloco A..." />
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Bairro *</label>
+                  <input v-model="form.addressDistrict" type="text" required class="input" />
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Cidade *</label>
+                  <input v-model="form.addressCity" type="text" required class="input" />
+                </div>
+              </div>
             </div>
 
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Escola</label>
-              <input v-model="form.schoolName" type="text" class="input" />
+            <!-- SEÇÃO: Turmas e Plano -->
+            <div class="border-t pt-6">
+              <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                </svg>
+                Turmas e Plano
+              </h2>
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Turmas de Interesse</label>
+                  <p class="text-xs text-gray-500 mb-2">Selecione uma ou mais turmas.</p>
+                  <div v-if="loadingCrews" class="text-gray-500 text-sm">Carregando turmas...</div>
+                  <div v-else class="flex flex-wrap gap-3">
+                    <label
+                      v-for="c in crews"
+                      :key="c.id"
+                      class="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 hover:border-green-300 cursor-pointer"
+                      :class="{ 'border-green-500 bg-green-50': form.crewIds.includes(c.id) }"
+                    >
+                      <input type="checkbox" :value="c.id" v-model="form.crewIds" class="rounded text-green-600" />
+                      <span>{{ c.get('Name') }}</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Plano</label>
+                    <select v-model="form.tipoPlano" class="input">
+                      <option value="">Selecione</option>
+                      <option value="PIX">PIX</option>
+                      <option value="RecorrenteMensal">Recorrente Mensal</option>
+                      <option value="RecorrenteAnual">Recorrente Anual</option>
+                      <option value="RecorrenteSemestral">Recorrente Semestral</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Melhor Dia de Pagamento</label>
+                    <input v-model.number="form.melhorDiaPagamento" type="number" min="1" max="31" class="input" placeholder="1 a 31" />
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Série</label>
-              <input v-model="form.schoolGrade" type="text" class="input" />
-            </div>
-          </div>
-
-            <div>
+            <div class="pt-4">
               <button
                 type="submit"
                 :disabled="loading"
@@ -169,16 +256,29 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { studentService } from '../../services/index.js'
+import { ref, onMounted } from 'vue'
+import { studentService, crewService } from '../../services/index.js'
 import Parse from '../../services/parse.js'
 import { UserCircleIcon } from '@heroicons/vue/24/outline'
 
 const loading = ref(false)
+const loadingCrews = ref(false)
 const error = ref(null)
 const success = ref(false)
 const photoFile = ref(null)
 const photoPreview = ref(null)
+const crews = ref([])
+
+onMounted(async () => {
+  loadingCrews.value = true
+  try {
+    crews.value = await crewService.getCrews(0, 200)
+  } catch (err) {
+    console.error('Erro ao carregar turmas:', err)
+  } finally {
+    loadingCrews.value = false
+  }
+})
 
 function onPhotoChange(e) {
   const file = e.target.files?.[0]
@@ -205,6 +305,9 @@ const form = ref({
   relationship: '',
   schoolName: '',
   schoolGrade: '',
+  crewIds: [],
+  tipoPlano: '',
+  melhorDiaPagamento: null,
   active: false,
   dateRegistry: new Date(),
   useImage: true
@@ -221,11 +324,11 @@ async function handleSubmit() {
       ...form.value,
       // Converter birthday de string para Date
       birthday: form.value.birthday ? new Date(form.value.birthday) : null,
-      // Campos de alergia: hasAllergy é booleano, allergy é a descrição
+      // Campos de alergia
       allergy: form.value.hasAllergy ? form.value.allergy : ''
     }
     
-    // Remover hasAllergy do payload (apenas controle do formulário, não vai para o banco)
+    // Remover hasAllergy do payload (apenas controle do formulário)
     delete data.hasAllergy
     
     // Adicionar foto se uma foi selecionada
