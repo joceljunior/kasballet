@@ -229,10 +229,16 @@
                     </select>
                   </div>
 
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Melhor Dia de Pagamento</label>
-                    <input v-model.number="form.melhorDiaPagamento" type="number" min="1" max="31" class="input" placeholder="1 a 31" />
-                  </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Melhor Dia de Pagamento</label>
+                <select v-model.number="form.melhorDiaPagamento" class="input">
+                  <option value="">Selecione</option>
+                  <option :value="5">Dia 5</option>
+                  <option :value="10">Dia 10</option>
+                  <option :value="15">Dia 15</option>
+                  <option :value="20">Dia 20</option>
+                </select>
+              </div>
                 </div>
               </div>
             </div>
