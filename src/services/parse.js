@@ -6,6 +6,6 @@ Parse.initialize(
   'ZumqURJep4l4ui2tAkcoZ3aTEJHJJbJXf4j8U3DW'  // JavaScript Key
 )
 
-Parse.serverURL = 'https://parseapi.back4app.com'
+Parse.serverURL = 'https://parseapi.back4app.com/'
 
 export default Parse
