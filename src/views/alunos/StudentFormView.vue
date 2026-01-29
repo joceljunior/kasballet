@@ -2,13 +2,13 @@
   <div class="space-y-6 pb-20 md:pb-6">
       <h1 class="text-2xl font-bold text-gray-900">{{ isEdit ? 'Editar Aluno' : 'Novo Aluno' }}</h1>
 
-      <form @submit.prevent="handleSubmit" class="card space-y-6">
+      <form @submit.prevent="handleSubmit" class="space-y-8">
         <div v-if="error" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
           {{ error }}
         </div>
 
         <!-- Foto da aluna -->
-        <div>
+        <div class="card">
           <label class="block text-sm font-medium text-gray-700 mb-2">Foto da aluna</label>
           <div class="flex items-center gap-4">
             <div class="w-24 h-24 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center flex-shrink-0">
@@ -27,144 +27,186 @@
           </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Nome Completo *</label>
-            <input v-model="form.name" type="text" required class="input" />
-          </div>
+        <!-- SEÇÃO: Dados da Aluna -->
+        <div class="card">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <UserCircleIcon class="w-5 h-5 text-green-600" />
+            Dados da Aluna
+          </h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Nome Completo *</label>
+              <input v-model="form.name" type="text" required class="input" />
+            </div>
 
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">CPF *</label>
-            <input v-model="form.cpf" type="text" required :disabled="isEdit" class="input" :class="{ 'bg-gray-100 cursor-not-allowed': isEdit }" />
-            <p v-if="isEdit" class="text-xs text-gray-500 mt-1">CPF não pode ser alterado</p>
-          </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Data de Nascimento *</label>
+              <input v-model="form.birthday" type="date" required class="input" />
+            </div>
 
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Email *</label>
-            <input v-model="form.email" type="email" required class="input" />
-          </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Nacionalidade *</label>
+              <input v-model="form.nationality" type="text" required class="input" />
+            </div>
 
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Telefone *</label>
-            <input v-model="form.telephone" type="tel" required class="input" />
-          </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Nome da Escola</label>
+              <input v-model="form.schoolName" type="text" class="input" />
+            </div>
 
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Data de Nascimento *</label>
-            <input v-model="form.birthday" type="date" required class="input" />
-          </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Série/Ano Escolar</label>
+              <input v-model="form.schoolGrade" type="text" class="input" placeholder="Ex: 3º ano, 1ª série..." />
+            </div>
 
-          <div class="md:col-span-2">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Turmas</label>
-            <p class="text-xs text-gray-500 mb-2">A aluna pode estar em mais de uma turma.</p>
-            <div class="flex flex-wrap gap-3">
-              <label
-                v-for="c in crews"
-                :key="c.id"
-                class="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 hover:border-green-300 cursor-pointer"
-                :class="{ 'border-green-500 bg-green-50': form.crewIds.includes(c.id) }"
-              >
-                <input type="checkbox" :value="c.id" v-model="form.crewIds" class="rounded text-green-600" />
-                <span>{{ c.get('Name') }}</span>
-              </label>
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-2">Possui Alergia?</label>
+              <div class="flex items-center gap-6">
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" :value="true" v-model="form.hasAllergy" class="w-4 h-4 text-green-600 focus:ring-green-500" />
+                  <span class="text-sm text-gray-700">Sim</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" :value="false" v-model="form.hasAllergy" class="w-4 h-4 text-green-600 focus:ring-green-500" />
+                  <span class="text-sm text-gray-700">Não</span>
+                </label>
+              </div>
+              <input 
+                v-if="form.hasAllergy"
+                v-model="form.allergy" 
+                type="text" 
+                class="input mt-3" 
+                placeholder="Descreva a alergia (Ex: Amendoim, lactose...)" 
+              />
             </div>
           </div>
+        </div>
 
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Nacionalidade *</label>
-            <input v-model="form.nationality" type="text" required class="input" />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Endereço *</label>
-            <input v-model="form.address" type="text" required class="input" />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Número *</label>
-            <input v-model.number="form.addressNumber" type="number" required class="input" />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Bairro *</label>
-            <input v-model="form.addressDistrict" type="text" required class="input" />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Cidade *</label>
-            <input v-model="form.addressCity" type="text" required class="input" />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Complemento</label>
-            <input v-model="form.complement" type="text" class="input" placeholder="Ex: Apt 101, Bloco A..." />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Melhor Dia de Pagamento</label>
-            <input v-model.number="form.melhorDiaPagamento" type="number" min="1" max="31" class="input" />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Plano</label>
-            <select v-model="form.tipoPlano" class="input">
-              <option value="">Selecione</option>
-              <option value="PIX">PIX</option>
-              <option value="RecorrenteMensal">Recorrente Mensal</option>
-              <option value="RecorrenteAnual">Recorrente Anual</option>
-              <option value="RecorrenteSemestral">Recorrente Semestral</option>
-            </select>
-          </div>
-
-          <div class="md:col-span-2">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Possui Alergia *</label>
-            <div class="flex items-center gap-6">
-              <label class="flex items-center gap-2 cursor-pointer">
-                <input 
-                  type="radio" 
-                  :value="true"
-                  v-model="form.hasAllergy" 
-                  class="w-4 h-4 text-green-600 focus:ring-green-500"
-                />
-                <span class="text-sm text-gray-700">Sim</span>
-              </label>
-              <label class="flex items-center gap-2 cursor-pointer">
-                <input 
-                  type="radio" 
-                  :value="false"
-                  v-model="form.hasAllergy" 
-                  class="w-4 h-4 text-green-600 focus:ring-green-500"
-                />
-                <span class="text-sm text-gray-700">Não</span>
-              </label>
+        <!-- SEÇÃO: Dados do Responsável -->
+        <div class="card">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+            </svg>
+            Dados do Responsável
+          </h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Nome do Responsável *</label>
+              <input v-model="form.nameResponsible" type="text" required class="input" />
             </div>
-            <input 
-              v-if="form.hasAllergy"
-              v-model="form.allergy" 
-              type="text" 
-              class="input mt-3" 
-              placeholder="Descreva a alergia (Ex: Amendoim, lactose...)" 
-            />
-          </div>
 
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Nome da Escola</label>
-            <input v-model="form.schoolName" type="text" class="input" />
-          </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Parentesco *</label>
+              <select v-model="form.relationship" required class="input">
+                <option value="">Selecione</option>
+                <option value="Mãe">Mãe</option>
+                <option value="Pai">Pai</option>
+                <option value="Avó">Avó</option>
+                <option value="Avô">Avô</option>
+                <option value="Tia">Tia</option>
+                <option value="Tio">Tio</option>
+                <option value="Outro">Outro</option>
+              </select>
+            </div>
 
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Série/Ano Escolar</label>
-            <input v-model="form.schoolGrade" type="text" class="input" placeholder="Ex: 3º ano, 1ª série..." />
-          </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">CPF do Responsável *</label>
+              <input v-model="form.cpf" type="text" required :disabled="isEdit" class="input" :class="{ 'bg-gray-100 cursor-not-allowed': isEdit }" />
+              <p v-if="isEdit" class="text-xs text-gray-500 mt-1">CPF não pode ser alterado</p>
+            </div>
 
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Nome do Responsável *</label>
-            <input v-model="form.nameResponsible" type="text" required class="input" />
-          </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Email *</label>
+              <input v-model="form.email" type="email" required class="input" />
+            </div>
 
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Parentesco *</label>
-            <input v-model="form.relationship" type="text" required class="input" placeholder="Ex: Mãe, Pai, Avó..." />
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Telefone *</label>
+              <input v-model="form.telephone" type="tel" required class="input" />
+            </div>
+          </div>
+        </div>
+
+        <!-- SEÇÃO: Endereço -->
+        <div class="card">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            </svg>
+            Endereço
+          </h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-2">Endereço *</label>
+              <input v-model="form.address" type="text" required class="input" />
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Número *</label>
+              <input v-model.number="form.addressNumber" type="number" required class="input" />
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Complemento</label>
+              <input v-model="form.complement" type="text" class="input" placeholder="Ex: Apt 101, Bloco A..." />
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Bairro *</label>
+              <input v-model="form.addressDistrict" type="text" required class="input" />
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Cidade *</label>
+              <input v-model="form.addressCity" type="text" required class="input" />
+            </div>
+          </div>
+        </div>
+
+        <!-- SEÇÃO: Turmas e Plano -->
+        <div class="card">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+            </svg>
+            Turmas e Plano
+          </h2>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Turmas</label>
+              <p class="text-xs text-gray-500 mb-2">A aluna pode estar em mais de uma turma.</p>
+              <div class="flex flex-wrap gap-3">
+                <label
+                  v-for="c in crews"
+                  :key="c.id"
+                  class="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 hover:border-green-300 cursor-pointer"
+                  :class="{ 'border-green-500 bg-green-50': form.crewIds.includes(c.id) }"
+                >
+                  <input type="checkbox" :value="c.id" v-model="form.crewIds" class="rounded text-green-600" />
+                  <span>{{ c.get('Name') }}</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Plano</label>
+                <select v-model="form.tipoPlano" class="input">
+                  <option value="">Selecione</option>
+                  <option value="PIX">PIX</option>
+                  <option value="RecorrenteMensal">Recorrente Mensal</option>
+                  <option value="RecorrenteAnual">Recorrente Anual</option>
+                  <option value="RecorrenteSemestral">Recorrente Semestral</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Melhor Dia de Pagamento</label>
+                <input v-model.number="form.melhorDiaPagamento" type="number" min="1" max="31" class="input" placeholder="1 a 31" />
+              </div>
+            </div>
           </div>
         </div>
 

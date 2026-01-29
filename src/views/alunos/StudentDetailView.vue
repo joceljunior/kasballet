@@ -4,205 +4,222 @@
         <p class="text-gray-600">Carregando...</p>
       </div>
 
-      <div v-else-if="student">
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
-          <div>
-            <p class="text-gray-600">Detalhes do aluno</p>
-          </div>
-          <div class="flex gap-2 mt-4 md:mt-0">
-            <router-link :to="`/alunos/${student.id}/edit`" class="btn-secondary">
-              Editar
-            </router-link>
-            <button @click="handleApprove" v-if="!student.get('active')" class="btn-primary">
-              Aprovar
-            </button>
+      <div v-else-if="student" class="space-y-6">
+        <!-- Cabeçalho com Foto e Ações -->
+        <div class="card">
+          <div class="flex flex-col md:flex-row md:items-center gap-6">
+            <div class="w-28 h-28 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center flex-shrink-0">
+              <img v-if="getPhotoUrl(student)" :src="getPhotoUrl(student)" :alt="student.get('name')" class="w-full h-full object-cover" />
+              <UserCircleIcon v-else class="w-16 h-16 text-gray-400" />
+            </div>
+            <div class="flex-1">
+              <div class="flex flex-wrap items-center gap-3 mb-2">
+                <h1 class="text-2xl font-bold text-gray-900">{{ student.get('name') }}</h1>
+                <span
+                  :class="student.get('active') ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'"
+                  class="px-3 py-1 text-xs font-medium rounded-full"
+                >
+                  {{ student.get('active') ? 'Ativa' : 'Pendente' }}
+                </span>
+              </div>
+              <p class="text-gray-600">Cadastrada em {{ formatDate(student.get('dateRegistry') || student.createdAt) }}</p>
+            </div>
+            <div class="flex gap-2">
+              <router-link :to="`/alunos/${student.id}/edit`" class="btn-secondary">
+                Editar
+              </router-link>
+              <button @click="handleApprove" v-if="!student.get('active')" class="btn-primary">
+                Aprovar
+              </button>
+            </div>
           </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <!-- Foto e Status -->
-          <div class="card md:col-span-2">
-            <div class="flex items-center gap-6">
-              <div class="w-24 h-24 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center flex-shrink-0">
-                <img v-if="getPhotoUrl(student)" :src="getPhotoUrl(student)" :alt="student.get('name')" class="w-full h-full object-cover" />
-                <UserCircleIcon v-else class="w-14 h-14 text-gray-400" />
-              </div>
-              <div class="flex-1">
-                <div class="flex items-center gap-3">
-                  <h1 class="text-2xl font-bold text-gray-900">{{ student.get('name') }}</h1>
-                  <span
-                    :class="student.get('active') ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'"
-                    class="px-3 py-1 text-xs font-medium rounded-full"
+        <!-- SEÇÃO: Dados da Aluna -->
+        <div class="card">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <UserCircleIcon class="w-5 h-5 text-green-600" />
+            Dados da Aluna
+          </h2>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Nome Completo</dt>
+              <dd class="mt-1 text-sm text-gray-900">{{ student.get('name') }}</dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Data de Nascimento</dt>
+              <dd class="mt-1 text-sm text-gray-900">{{ formatDate(student.get('birthday')) }}</dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Nacionalidade</dt>
+              <dd class="mt-1 text-sm text-gray-900">{{ student.get('nationality') || '-' }}</dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Escola</dt>
+              <dd class="mt-1 text-sm text-gray-900">{{ student.get('schoolName') || '-' }}</dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Série/Ano</dt>
+              <dd class="mt-1 text-sm text-gray-900">{{ student.get('schoolGrade') || '-' }}</dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Alergia</dt>
+              <dd class="mt-1 text-sm text-gray-900">{{ student.get('allergy') || 'Não possui' }}</dd>
+            </div>
+          </div>
+        </div>
+
+        <!-- SEÇÃO: Dados do Responsável -->
+        <div class="card">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+            </svg>
+            Dados do Responsável
+          </h2>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Nome do Responsável</dt>
+              <dd class="mt-1 text-sm text-gray-900">{{ student.get('nameResponsible') || '-' }}</dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Parentesco</dt>
+              <dd class="mt-1 text-sm text-gray-900">{{ student.get('relationship') || '-' }}</dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">CPF</dt>
+              <dd class="mt-1 text-sm text-gray-900">{{ student.get('cpf') || '-' }}</dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Email</dt>
+              <dd class="mt-1 text-sm text-gray-900">{{ student.get('email') || '-' }}</dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Telefone</dt>
+              <dd class="mt-1 text-sm text-gray-900">{{ student.get('telephone') || '-' }}</dd>
+            </div>
+          </div>
+        </div>
+
+        <!-- SEÇÃO: Endereço -->
+        <div class="card">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            </svg>
+            Endereço
+          </h2>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="md:col-span-2">
+              <dt class="text-sm font-medium text-gray-500">Endereço</dt>
+              <dd class="mt-1 text-sm text-gray-900">
+                {{ student.get('address') || '-' }}{{ student.get('addressNumber') ? ', ' + student.get('addressNumber') : '' }}{{ student.get('complement') ? ' - ' + student.get('complement') : '' }}
+              </dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Bairro</dt>
+              <dd class="mt-1 text-sm text-gray-900">{{ student.get('addressDistrict') || '-' }}</dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Cidade</dt>
+              <dd class="mt-1 text-sm text-gray-900">{{ student.get('addressCity') || '-' }}</dd>
+            </div>
+          </div>
+        </div>
+
+        <!-- SEÇÃO: Turmas e Plano -->
+        <div class="card">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+            </svg>
+            Turmas e Plano
+          </h2>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Turmas</dt>
+              <dd class="mt-1">
+                <div v-if="!studentCrews.length" class="text-sm text-gray-500">Nenhuma turma vinculada</div>
+                <div v-else class="flex flex-wrap gap-1">
+                  <span 
+                    v-for="c in studentCrews" 
+                    :key="c.id"
+                    class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800"
                   >
-                    {{ student.get('active') ? 'Ativa' : 'Pendente' }}
+                    {{ c.get('Name') }}
                   </span>
                 </div>
-                <p class="text-gray-600 mt-1">Detalhes do aluno</p>
-              </div>
+              </dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Tipo de Plano</dt>
+              <dd class="mt-1 text-sm text-gray-900">{{ formatTipoPlano(student.get('tipoPlano')) }}</dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Melhor Dia de Pagamento</dt>
+              <dd class="mt-1 text-sm text-gray-900">{{ student.get('melhorDiaPagamento') || '-' }}</dd>
             </div>
           </div>
+        </div>
 
-          <div class="card">
-            <h2 class="text-lg font-semibold text-gray-900 mb-4">Informações Pessoais</h2>
-            <dl class="space-y-3">
-              <div>
-                <dt class="text-sm font-medium text-gray-500">CPF</dt>
-                <dd class="mt-1 text-sm text-gray-900">{{ student.get('cpf') }}</dd>
-              </div>
-              <div>
-                <dt class="text-sm font-medium text-gray-500">Email</dt>
-                <dd class="mt-1 text-sm text-gray-900">{{ student.get('email') || 'Não informado' }}</dd>
-              </div>
-              <div>
-                <dt class="text-sm font-medium text-gray-500">Telefone</dt>
-                <dd class="mt-1 text-sm text-gray-900">{{ student.get('telephone') }}</dd>
-              </div>
-              <div>
-                <dt class="text-sm font-medium text-gray-500">Data de Nascimento</dt>
-                <dd class="mt-1 text-sm text-gray-900">{{ formatDate(student.get('birthday')) }}</dd>
-              </div>
-              <div>
-                <dt class="text-sm font-medium text-gray-500">Nacionalidade</dt>
-                <dd class="mt-1 text-sm text-gray-900">{{ student.get('nationality') }}</dd>
-              </div>
-              <div v-if="student.get('allergy')">
-                <dt class="text-sm font-medium text-gray-500">Alergia</dt>
-                <dd class="mt-1 text-sm text-gray-900">{{ student.get('allergy') }}</dd>
-              </div>
-            </dl>
+        <!-- SEÇÃO: Histórico de Pagamentos (somente Master) -->
+        <div v-if="authStore.isMaster" class="card">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            Histórico de Pagamentos (Mensalidades)
+          </h2>
+          <div v-if="paymentLoading" class="text-sm text-gray-500 py-2">Carregando...</div>
+          <div v-else-if="!paymentHistory.length" class="text-sm text-gray-500 py-2">Nenhuma mensalidade lançada.</div>
+          <div v-else class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
+                  <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Valor</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-200">
+                <tr v-for="e in paymentHistory" :key="e.id">
+                  <td class="px-3 py-2 text-sm text-gray-900">{{ formatDate(e.get('date')) }}</td>
+                  <td class="px-3 py-2 text-sm text-right text-green-700 font-medium">R$ {{ formatMoney(e.get('value')) }}</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
+          <router-link :to="{ path: '/financeiro/lancamentos/novo', query: { studentId: student.id } }" class="inline-block mt-3 text-sm text-green-600 hover:underline">+ Lançar mensalidade</router-link>
+        </div>
 
-          <div class="card">
-            <h2 class="text-lg font-semibold text-gray-900 mb-4">Endereço</h2>
-            <dl class="space-y-3">
-              <div>
-                <dt class="text-sm font-medium text-gray-500">Endereço</dt>
-                <dd class="mt-1 text-sm text-gray-900">
-                  {{ student.get('address') }}, {{ student.get('addressNumber') }}
-                </dd>
-              </div>
-              <div>
-                <dt class="text-sm font-medium text-gray-500">Bairro</dt>
-                <dd class="mt-1 text-sm text-gray-900">{{ student.get('addressDistrict') }}</dd>
-              </div>
-              <div>
-                <dt class="text-sm font-medium text-gray-500">Cidade</dt>
-                <dd class="mt-1 text-sm text-gray-900">{{ student.get('addressCity') }}</dd>
-              </div>
-              <div v-if="student.get('complement')">
-                <dt class="text-sm font-medium text-gray-500">Complemento</dt>
-                <dd class="mt-1 text-sm text-gray-900">{{ student.get('complement') }}</dd>
-              </div>
-            </dl>
-          </div>
-
-          <div class="card">
-            <h2 class="text-lg font-semibold text-gray-900 mb-4">Responsável</h2>
-            <dl class="space-y-3">
-              <div>
-                <dt class="text-sm font-medium text-gray-500">Nome</dt>
-                <dd class="mt-1 text-sm text-gray-900">{{ student.get('nameResponsible') || 'Não informado' }}</dd>
-              </div>
-              <div>
-                <dt class="text-sm font-medium text-gray-500">Parentesco</dt>
-                <dd class="mt-1 text-sm text-gray-900">{{ student.get('relationship') || 'Não informado' }}</dd>
-              </div>
-            </dl>
-          </div>
-
-          <div class="card">
-            <h2 class="text-lg font-semibold text-gray-900 mb-4">Escola</h2>
-            <dl class="space-y-3">
-              <div v-if="student.get('schoolName')">
-                <dt class="text-sm font-medium text-gray-500">Nome da Escola</dt>
-                <dd class="mt-1 text-sm text-gray-900">{{ student.get('schoolName') }}</dd>
-              </div>
-              <div v-if="student.get('schoolGrade')">
-                <dt class="text-sm font-medium text-gray-500">Série/Ano</dt>
-                <dd class="mt-1 text-sm text-gray-900">{{ student.get('schoolGrade') }}</dd>
-              </div>
-              <div v-if="!student.get('schoolName') && !student.get('schoolGrade')">
-                <p class="text-sm text-gray-500">Não informado</p>
-              </div>
-            </dl>
-          </div>
-
-          <div class="card">
-            <h2 class="text-lg font-semibold text-gray-900 mb-4">Turmas</h2>
-            <p v-if="!studentCrews.length" class="text-sm text-gray-500">Nenhuma turma vinculada.</p>
-            <ul v-else class="space-y-1">
-              <li v-for="c in studentCrews" :key="c.id" class="text-sm text-pink-500">
-                {{ c.get('Name') }}
-              </li>
-            </ul>
-          </div>
-
-          <div class="card">
-            <h2 class="text-lg font-semibold text-gray-900 mb-4">Financeiro</h2>
-            <dl class="space-y-3">
-              <div>
-                <dt class="text-sm font-medium text-gray-500">Melhor Dia de Pagamento</dt>
-                <dd class="mt-1 text-sm text-gray-900">
-                  {{ student.get('melhorDiaPagamento') || 'Não informado' }}
-                </dd>
-              </div>
-              <div>
-                <dt class="text-sm font-medium text-gray-500">Tipo de Plano</dt>
-                <dd class="mt-1 text-sm text-gray-900">
-                  {{ student.get('tipoPlano') || 'Não informado' }}
-                </dd>
-              </div>
-            </dl>
-          </div>
-
-          <div v-if="authStore.isMaster" class="card md:col-span-2">
-            <h2 class="text-lg font-semibold text-gray-900 mb-4">Histórico de pagamentos (mensalidades)</h2>
-            <div v-if="paymentLoading" class="text-sm text-gray-500 py-2">Carregando...</div>
-            <div v-else-if="!paymentHistory.length" class="text-sm text-gray-500 py-2">Nenhuma mensalidade lançada.</div>
-            <div v-else class="overflow-x-auto">
-              <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                  <tr>
-                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
-                    <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Valor</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-200">
-                  <tr v-for="e in paymentHistory" :key="e.id">
-                    <td class="px-3 py-2 text-sm text-gray-900">{{ formatDate(e.get('date')) }}</td>
-                    <td class="px-3 py-2 text-sm text-right text-green-700 font-medium">{{ formatMoney(e.get('value')) }}</td>
-                  </tr>
-                </tbody>
-              </table>
+        <!-- SEÇÃO: Informações do Sistema -->
+        <div class="card">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            Informações do Sistema
+          </h2>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Data de Registro</dt>
+              <dd class="mt-1 text-sm text-gray-900">{{ formatDate(student.get('dateRegistry') || student.createdAt) }}</dd>
             </div>
-            <router-link :to="{ path: '/financeiro/lancamentos/novo', query: { studentId: student.id } }" class="inline-block mt-3 text-sm text-green-600 hover:underline">+ Lançar mensalidade</router-link>
-          </div>
-
-          <div class="card">
-            <h2 class="text-lg font-semibold text-gray-900 mb-4">Informações do Sistema</h2>
-            <dl class="space-y-3">
-              <div>
-                <dt class="text-sm font-medium text-gray-500">Data de Registro</dt>
-                <dd class="mt-1 text-sm text-gray-900">{{ formatDate(student.get('dateRegistry')) }}</dd>
-              </div>
-              <div>
-                <dt class="text-sm font-medium text-gray-500">Status</dt>
-                <dd class="mt-1">
-                  <span
-                    :class="student.get('active') ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'"
-                    class="px-2 py-1 text-xs font-medium rounded-full"
-                  >
-                    {{ student.get('active') ? 'Ativa' : 'Pendente' }}
-                  </span>
-                </dd>
-              </div>
-              <div>
-                <dt class="text-sm font-medium text-gray-500">Usa Imagem</dt>
-                <dd class="mt-1 text-sm text-gray-900">
-                  {{ student.get('useImage') ? 'Sim' : 'Não' }}
-                </dd>
-              </div>
-            </dl>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Status</dt>
+              <dd class="mt-1">
+                <span
+                  :class="student.get('active') ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'"
+                  class="px-2 py-1 text-xs font-medium rounded-full"
+                >
+                  {{ student.get('active') ? 'Ativa' : 'Pendente' }}
+                </span>
+              </dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Usa Imagem</dt>
+              <dd class="mt-1 text-sm text-gray-900">{{ student.get('useImage') ? 'Sim' : 'Não' }}</dd>
+            </div>
           </div>
         </div>
       </div>
@@ -229,6 +246,16 @@ const loading = ref(true)
 function formatMoney(v) {
   const n = Number(v)
   return isNaN(n) ? '0,00' : n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+function formatTipoPlano(tipo) {
+  const map = {
+    'PIX': 'PIX',
+    'RecorrenteMensal': 'Recorrente Mensal',
+    'RecorrenteAnual': 'Recorrente Anual',
+    'RecorrenteSemestral': 'Recorrente Semestral'
+  }
+  return map[tipo] || '-'
 }
 
 onMounted(async () => {
