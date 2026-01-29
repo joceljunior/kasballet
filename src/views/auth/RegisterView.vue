@@ -2,21 +2,38 @@
   <div class="min-h-screen bg-gradient-to-br from-green-50 to-green-100 py-12 px-4">
     <div class="max-w-2xl mx-auto">
       <div class="bg-white rounded-2xl shadow-xl p-6 md:p-8">
-        <div class="text-center mb-8">
-          <h1 class="text-3xl font-bold text-gray-900 mb-2">Cadastro de Aluno</h1>
-          <p class="text-gray-600">Preencha os dados abaixo. Seu cadastro ficará pendente até aprovação.</p>
+        
+        <!-- Tela de agradecimento após cadastro -->
+        <div v-if="success" class="text-center py-12">
+          <div class="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce">
+            <svg class="w-12 h-12 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+          </div>
+          <h2 class="text-3xl font-bold text-gray-900 mb-4">Cadastro Realizado!</h2>
+          <p class="text-lg text-gray-600 mb-3">Obrigado por se cadastrar no Kasballet!</p>
+          <p class="text-gray-500 mb-6">Seu cadastro está pendente de aprovação.<br>Entraremos em contato em breve.</p>
+          <div class="inline-flex items-center gap-2 bg-green-50 text-green-700 px-4 py-2 rounded-full text-sm">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            Aguarde nosso contato
+          </div>
         </div>
 
-        <form @submit.prevent="handleSubmit" class="space-y-6">
-          <div v-if="error" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-            {{ error }}
+        <!-- Formulário (mostrado apenas quando não há sucesso) -->
+        <template v-else>
+          <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">Cadastro de Aluno</h1>
+            <p class="text-gray-600">Preencha os dados abaixo. Seu cadastro ficará pendente até aprovação.</p>
           </div>
 
-          <div v-if="success" class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
-            Cadastro realizado com sucesso! Aguarde a aprovação.
-          </div>
+          <form @submit.prevent="handleSubmit" class="space-y-6">
+            <div v-if="error" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+              {{ error }}
+            </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">Nome Completo *</label>
               <input v-model="form.name" type="text" required class="input" />
@@ -107,20 +124,22 @@
             </div>
           </div>
 
-          <div class="flex gap-4">
-            <button
-              type="submit"
-              :disabled="loading"
-              class="btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <span v-if="loading">Cadastrando...</span>
-              <span v-else>Cadastrar</span>
-            </button>
-            <router-link to="/" class="btn-secondary">
-              Cancelar
-            </router-link>
-          </div>
-        </form>
+            <div class="flex gap-4">
+              <button
+                type="submit"
+                :disabled="loading"
+                class="btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span v-if="loading">Cadastrando...</span>
+                <span v-else>Cadastrar</span>
+              </button>
+              <router-link to="/" class="btn-secondary">
+                Voltar
+              </router-link>
+            </div>
+          </form>
+        </template>
+        
       </div>
     </div>
   </div>
@@ -129,7 +148,6 @@
 <script setup>
 import { ref } from 'vue'
 import { studentService } from '../../services/index.js'
-import router from '../../router'
 
 const loading = ref(false)
 const error = ref(null)
@@ -166,9 +184,7 @@ async function handleSubmit() {
     // Registro público: cria como pendente (isPublicRegistration = true)
     await studentService.createStudent(form.value, true)
     success.value = true
-    setTimeout(() => {
-      router.push('/')
-    }, 2000)
+    // Fluxo termina aqui - apenas mostra a mensagem de agradecimento
   } catch (err) {
     error.value = err.message || 'Erro ao realizar cadastro'
   } finally {
