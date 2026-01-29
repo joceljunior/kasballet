@@ -1,33 +1,21 @@
 import Parse from 'parse'
 
-// IMPORTANTE: No Vite, as variáveis de ambiente são substituídas em TEMPO DE BUILD
-// Elas precisam estar disponíveis quando o Railway executa `npm run build`
-const applicationId = import.meta.env.VITE_PARSE_APPLICATION_ID
-const javascriptKey = import.meta.env.VITE_PARSE_JAVASCRIPT_KEY
-const serverURL = import.meta.env.VITE_PARSE_SERVER_URL
+// Configuração do Back4App
+// Usa variáveis de ambiente se disponíveis, senão usa valores padrão (para desenvolvimento)
+const applicationId = import.meta.env.VITE_PARSE_APPLICATION_ID || ''
+const javascriptKey = import.meta.env.VITE_PARSE_JAVASCRIPT_KEY || ''
+const serverURL = import.meta.env.VITE_PARSE_SERVER_URL || 'https://parseapi.back4app.com'
 
-let isParseInitialized = false
-
-// Initialize Parse SDK
+// Inicializar Parse apenas se tiver Application ID e JavaScript Key
 if (applicationId && javascriptKey) {
   Parse.initialize(applicationId, javascriptKey)
-  
-  if (serverURL) {
-    Parse.serverURL = serverURL
-  }
-  
-  isParseInitialized = true
+  Parse.serverURL = serverURL
 } else {
-  const missingVars = []
-  if (!applicationId) missingVars.push('VITE_PARSE_APPLICATION_ID')
-  if (!javascriptKey) missingVars.push('VITE_PARSE_JAVASCRIPT_KEY')
-  if (!serverURL) missingVars.push('VITE_PARSE_SERVER_URL')
-  
-  console.error('❌ Parse SDK: Variáveis de ambiente faltando:', missingVars.join(', '))
-  console.error('📝 Configure no Railway: Settings > Variables')
-  console.error('⚠️  IMPORTANTE: As variáveis devem estar disponíveis durante o BUILD (npm run build)')
-  console.error('🔧 Após adicionar as variáveis, faça um novo deploy no Railway')
+  console.error('❌ Parse SDK: Credenciais não configuradas!')
+  console.error('Configure as variáveis de ambiente no Railway:')
+  console.error('- VITE_PARSE_APPLICATION_ID')
+  console.error('- VITE_PARSE_JAVASCRIPT_KEY')
+  console.error('- VITE_PARSE_SERVER_URL')
 }
 
 export default Parse
-export { isParseInitialized }

@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { authService } from '../services/index.js'
-import { isParseInitialized } from '../services/parse.js'
 import router from '../router'
 
 export const useAuthStore = defineStore('auth', () => {
@@ -47,10 +46,6 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function checkAuth() {
-    if (!isParseInitialized) {
-      user.value = null
-      return
-    }
     try {
       const currentUser = authService.getCurrentUser()
       if (currentUser) {
