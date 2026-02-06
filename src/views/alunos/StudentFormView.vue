@@ -400,17 +400,14 @@ async function handleSubmit() {
       payload.birthday = new Date(payload.birthday)
     }
     
-    // Converter data de registro para Date se necessário
-    if (payload.dateRegistry && typeof payload.dateRegistry === 'string') {
-      payload.dateRegistry = new Date(payload.dateRegistry)
-    }
-    
     // Adicionar foto se uma nova foi selecionada
     if (photoFile.value) {
       payload.photo = new Parse.File(photoFile.value.name, photoFile.value)
     }
     
     if (isEdit.value) {
+      // Remover dateRegistry da atualização (não deve ser alterado)
+      delete payload.dateRegistry
       // Atualizar aluno existente
       await studentStore.updateStudent(route.params.id, payload)
       router.push(`/alunos/${route.params.id}`)

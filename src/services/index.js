@@ -84,11 +84,30 @@ export class StudentService {
    * Update student
    */
   async updateStudent(id, data) {
-    const { crewIds, ...rest } = data
+    const { crewIds, hasAllergy, ...rest } = data
     
     // Converter foto se necessário
     if (rest.photo && typeof File !== 'undefined' && rest.photo instanceof File) {
       rest.photo = new Parse.File(rest.photo.name, rest.photo)
+    }
+    
+    // Converter datas se necessário
+    if (rest.birthday && typeof rest.birthday === 'string') {
+      rest.birthday = new Date(rest.birthday)
+    }
+    if (rest.dateRegistry && typeof rest.dateRegistry === 'string') {
+      rest.dateRegistry = new Date(rest.dateRegistry)
+    }
+    
+    // Garantir tipos numéricos
+    if (rest.valorMensalidade !== undefined && rest.valorMensalidade !== null) {
+      rest.valorMensalidade = Number(rest.valorMensalidade) || 0
+    }
+    if (rest.melhorDiaPagamento !== undefined && rest.melhorDiaPagamento !== null) {
+      rest.melhorDiaPagamento = Number(rest.melhorDiaPagamento) || null
+    }
+    if (rest.addressNumber !== undefined && rest.addressNumber !== null && rest.addressNumber !== '') {
+      rest.addressNumber = Number(rest.addressNumber) || 0
     }
     
     if (crewIds !== undefined) {
