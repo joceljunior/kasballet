@@ -75,17 +75,19 @@
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
             <tr>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Lançamento</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Referência</th>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Descrição / Ref.</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Descrição</th>
               <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Valor</th>
               <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Ações</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-200">
             <tr v-for="e in financialStore.entries" :key="e.id" class="hover:bg-gray-50">
-              <td class="px-4 py-3 text-sm text-gray-900">{{ formatDate(e.get('date')) }}</td>
+              <td class="px-4 py-3 text-sm text-gray-900">{{ formatDate(e.get('date')) || '-' }}</td>
+              <td class="px-4 py-3 text-sm text-gray-600">{{ formatMonthYear(e.get('dateReference')) }}</td>
               <td class="px-4 py-3 text-sm">
                 <span :class="e.get('type') === 'entrada' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'" class="px-2 py-0.5 text-xs font-medium rounded-full">
                   {{ subtypeLabel(e.get('type'), e.get('subtype')) }}
@@ -147,6 +149,14 @@ function formatDate(d) {
   if (!d) return '—'
   const x = d instanceof Date ? d : new Date(d)
   return isNaN(x.getTime()) ? '—' : x.toLocaleDateString('pt-BR')
+}
+
+function formatMonthYear(d) {
+  if (!d) return '-'
+  const date = d instanceof Date ? d : new Date(d)
+  if (isNaN(date.getTime())) return '-'
+  const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+  return `${months[date.getMonth()]}/${date.getFullYear()}`
 }
 
 function formatMoney(v) {

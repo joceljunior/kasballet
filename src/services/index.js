@@ -159,14 +159,17 @@ export class StudentService {
     const now = new Date()
 
     // Criar lançamentos um a um
+    // date = null (ainda não foi pago)
+    // dateReference = mês a que o pagamento se refere
     for (let i = 0; i < months; i++) {
-      const entryDate = new Date(now.getFullYear(), now.getMonth() + i, 1)
+      const referenceDate = new Date(now.getFullYear(), now.getMonth() + i, 1)
       try {
         await financialEntryRepository.create({
           type: 'entrada',
           subtype: 'mensalidade',
           status: 'pendente',
-          date: entryDate,
+          date: null, // Data do pagamento será preenchida quando for efetivado
+          dateReference: referenceDate, // Mês de referência
           value: valorMensalidade,
           description: `Mensalidade - ${studentName}`,
           studentId: studentId,
@@ -200,10 +203,10 @@ export class StudentService {
         status: 'pendente'
       })
 
-      // Filtrar apenas lançamentos a partir do mês atual
+      // Filtrar apenas lançamentos a partir do mês atual (usando dateReference)
       const futureEntries = allEntries.filter(e => {
-        const entryDate = e.get('date')
-        return entryDate && entryDate >= startOfCurrentMonth
+        const refDate = e.get('dateReference') || e.get('date')
+        return refDate && refDate >= startOfCurrentMonth
       })
 
       if (futureEntries.length > 0) {
@@ -334,6 +337,7 @@ export class StudentService {
 
   /**
    * Busca alunos ativos que NÃO pagaram a mensalidade do mês ANTERIOR ao atual.
+   * Verifica pelo campo dateReference (mês de referência) e status efetivado.
    * Retorna array de alunos com informações de pagamento.
    */
   async getStudentsWithoutPaymentThisMonth() {
@@ -349,12 +353,13 @@ export class StudentService {
       const activeStudents = await this.repository.findActive(10000, 0, { active: true })
       if (!activeStudents.length) return []
 
-      // Buscar todas as mensalidades do mês anterior
+      // Buscar todas as mensalidades EFETIVADAS cujo mês de referência é o mês anterior
       const entries = await financialEntryRepository.findEntries(10000, 0, {
         type: 'entrada',
         subtype: 'mensalidade',
-        dateFrom: startOfPreviousMonth,
-        dateTo: endOfPreviousMonth
+        status: 'efetivado',
+        dateReferenceFrom: startOfPreviousMonth,
+        dateReferenceTo: endOfPreviousMonth
       })
 
       // Criar set de studentIds que pagaram
@@ -523,10 +528,16 @@ export class FinancialEntryService {
    */
   async createEntry(data) {
     const user = Parse.User.current()
+    const date = data.date instanceof Date ? data.date : new Date(data.date)
+    const dateReference = data.dateReference 
+      ? (data.dateReference instanceof Date ? data.dateReference : new Date(data.dateReference))
+      : date // Se não tiver dateReference, usar a mesma data
+    
     const payload = {
       type: data.type,
       subtype: data.subtype,
-      date: data.date instanceof Date ? data.date : new Date(data.date),
+      date: date,
+      dateReference: dateReference,
       value: Number(data.value) || 0,
       description: data.description != null ? String(data.description) : '',
       studentId: data.studentId || null,
@@ -542,6 +553,7 @@ export class FinancialEntryService {
     if (data.type !== undefined) payload.type = data.type
     if (data.subtype !== undefined) payload.subtype = data.subtype
     if (data.date !== undefined) payload.date = data.date instanceof Date ? data.date : new Date(data.date)
+    if (data.dateReference !== undefined) payload.dateReference = data.dateReference instanceof Date ? data.dateReference : new Date(data.dateReference)
     if (data.value !== undefined) payload.value = Number(data.value) || 0
     if (data.description !== undefined) payload.description = String(data.description)
     if (data.studentId !== undefined) payload.studentId = data.studentId || null

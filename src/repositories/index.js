@@ -380,6 +380,7 @@ export class FinancialEntryRepository extends BaseRepository {
     if (filters.status) query.equalTo('status', filters.status)
     if (filters.studentId) query.equalTo('studentId', filters.studentId)
     if (filters.teacherId) query.equalTo('teacherId', filters.teacherId)
+    // Filtros por date (data do lançamento)
     if (filters.dateFrom != null) {
       const d = filters.dateFrom instanceof Date ? filters.dateFrom : new Date(filters.dateFrom)
       if (!isNaN(d.getTime())) query.greaterThanOrEqualTo('date', d)
@@ -388,7 +389,16 @@ export class FinancialEntryRepository extends BaseRepository {
       const d = filters.dateTo instanceof Date ? filters.dateTo : new Date(filters.dateTo)
       if (!isNaN(d.getTime())) query.lessThanOrEqualTo('date', d)
     }
-    query.descending('date')
+    // Filtros por dateReference (mês de referência)
+    if (filters.dateReferenceFrom != null) {
+      const d = filters.dateReferenceFrom instanceof Date ? filters.dateReferenceFrom : new Date(filters.dateReferenceFrom)
+      if (!isNaN(d.getTime())) query.greaterThanOrEqualTo('dateReference', d)
+    }
+    if (filters.dateReferenceTo != null) {
+      const d = filters.dateReferenceTo instanceof Date ? filters.dateReferenceTo : new Date(filters.dateReferenceTo)
+      if (!isNaN(d.getTime())) query.lessThanOrEqualTo('dateReference', d)
+    }
+    query.descending('dateReference', 'date')
     query.limit(limit)
     query.skip(skip)
     return query.find()
@@ -398,7 +408,8 @@ export class FinancialEntryRepository extends BaseRepository {
    * Histórico de lançamentos de um aluno (todas as entradas vinculadas: mensalidade, rematrícula, taxa, figurino)
    */
   async findByStudent(studentId, limit = 100, skip = 0) {
-    return this.findEntries(limit, skip, { type: 'entrada', studentId })
+    // Retornar apenas lançamentos efetivos para o histórico da aluna
+    return this.findEntries(limit, skip, { type: 'entrada', studentId, status: 'efetivado' })
   }
 
   /**
