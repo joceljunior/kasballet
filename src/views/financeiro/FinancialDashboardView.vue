@@ -101,7 +101,16 @@ import { onMounted, computed } from 'vue'
 import { useFinancialStore } from '../../stores/financial'
 
 const SUBTYPE_LABELS = {
-  entrada: { mensalidade: 'Mensalidade', vendas: 'Vendas', outros: 'Outros' },
+  entrada: { 
+    mensalidade: 'Mensalidade', 
+    pagamento_semestral: 'Pag. Semestral',
+    pagamento_anual: 'Pag. Anual',
+    rematricula: 'Rematrícula',
+    taxa_participacao: 'Taxa Part.',
+    figurino: 'Figurino',
+    vendas: 'Vendas', 
+    outros: 'Outros' 
+  },
   saida: { pagamento: 'Pagamento', contas: 'Contas', compras: 'Compras', impostos: 'Impostos', outros: 'Outros' }
 }
 

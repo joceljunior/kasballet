@@ -286,6 +286,8 @@ function formatDateShort(d) {
 function formatSubtype(subtype) {
   const map = {
     'mensalidade': 'Mensalidade',
+    'pagamento_semestral': 'Pag. Semestral',
+    'pagamento_anual': 'Pag. Anual',
     'rematricula': 'Rematrícula',
     'taxa_participacao': 'Taxa de Participação',
     'figurino': 'Figurino',

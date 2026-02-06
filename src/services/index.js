@@ -155,7 +155,8 @@ export class StudentService {
 
   /**
    * Gera lançamentos pendentes de mensalidade para uma aluna.
-   * Quantidade de meses baseada no tipo de plano.
+   * APENAS para planos Mensal e MensalRecorrente.
+   * Gera do mês atual até dezembro do ano corrente.
    */
   async generatePendingPayments(studentId, studentName, valorMensalidade, tipoPlano) {
     if (!studentId || !studentName || !valorMensalidade || valorMensalidade <= 0) {
@@ -163,22 +164,19 @@ export class StudentService {
       return
     }
 
-    // Determinar quantidade de meses baseado no plano
-    const monthsMap = {
-      'Mensal': 12,
-      'MensalRecorrente': 12,
-      'Semestral': 6,
-      'Anual': 12
+    // Só gera lançamentos automáticos para Mensal e MensalRecorrente
+    if (tipoPlano !== 'Mensal' && tipoPlano !== 'MensalRecorrente') {
+      console.log(`Plano ${tipoPlano} não gera lançamentos automáticos`)
+      return
     }
-    const months = monthsMap[tipoPlano] || 12
 
     const now = new Date()
-
-    // Criar lançamentos um a um
-    // date = null (ainda não foi pago)
-    // dateReference = mês a que o pagamento se refere
-    for (let i = 0; i < months; i++) {
-      const referenceDate = new Date(now.getFullYear(), now.getMonth() + i, 1)
+    const currentMonth = now.getMonth() // 0-11
+    const currentYear = now.getFullYear()
+    
+    // Gerar do mês atual até dezembro (mês 11)
+    for (let month = currentMonth; month <= 11; month++) {
+      const referenceDate = new Date(currentYear, month, 1)
       try {
         await financialEntryRepository.create({
           type: 'entrada',
@@ -192,7 +190,7 @@ export class StudentService {
           teacherId: null
         })
       } catch (err) {
-        console.error(`Erro ao criar lançamento para mês ${i}:`, err)
+        console.error(`Erro ao criar lançamento para mês ${month}:`, err)
       }
     }
   }
@@ -204,6 +202,12 @@ export class StudentService {
   async updateOrGeneratePendingPayments(studentId, studentName, valorMensalidade, tipoPlano) {
     if (!studentId || !studentName || !valorMensalidade || valorMensalidade <= 0) {
       console.warn('updateOrGeneratePendingPayments: dados inválidos', { studentId, studentName, valorMensalidade })
+      return
+    }
+
+    // Só atualiza/gera para Mensal e MensalRecorrente
+    if (tipoPlano !== 'Mensal' && tipoPlano !== 'MensalRecorrente') {
+      console.log(`Plano ${tipoPlano} não gera lançamentos automáticos`)
       return
     }
 
@@ -352,41 +356,158 @@ export class StudentService {
   }
 
   /**
-   * Busca alunos ativos que NÃO pagaram a mensalidade do mês ANTERIOR ao atual.
-   * Verifica pelo campo dateReference (mês de referência) e status efetivado.
-   * Retorna array de alunos com informações de pagamento.
+   * Busca alunos ativos que NÃO pagaram:
+   * - Mensal/MensalRecorrente: mensalidade do mês anterior
+   * - Semestral: pagamento_semestral nos últimos 6 meses
+   * - Anual: pagamento_anual nos últimos 12 meses
    */
   async getStudentsWithoutPaymentThisMonth() {
     try {
-      // Obter início e fim do mês ANTERIOR
       const now = new Date()
-      const previousMonth = now.getMonth() === 0 ? 11 : now.getMonth() - 1
-      const previousYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear()
-      const startOfPreviousMonth = new Date(previousYear, previousMonth, 1)
-      const endOfPreviousMonth = new Date(previousYear, previousMonth + 1, 0, 23, 59, 59, 999)
-
+      
       // Buscar todos os alunos ativos
       const activeStudents = await this.repository.findActive(10000, 0, { active: true })
       if (!activeStudents.length) return []
 
-      // Buscar todas as mensalidades EFETIVADAS cujo mês de referência é o mês anterior
-      const entries = await financialEntryRepository.findEntries(10000, 0, {
-        type: 'entrada',
-        subtype: 'mensalidade',
-        status: 'efetivado',
-        dateReferenceFrom: startOfPreviousMonth,
-        dateReferenceTo: endOfPreviousMonth
-      })
+      // Separar alunos por tipo de plano
+      const mensalStudents = activeStudents.filter(s => 
+        s.get('tipoPlano') === 'Mensal' || s.get('tipoPlano') === 'MensalRecorrente'
+      )
+      const semestralStudents = activeStudents.filter(s => s.get('tipoPlano') === 'Semestral')
+      const anualStudents = activeStudents.filter(s => s.get('tipoPlano') === 'Anual')
 
-      // Criar set de studentIds que pagaram
-      const paidStudentIds = new Set(entries.map(e => e.get('studentId')).filter(Boolean))
+      const unpaidStudents = []
 
-      // Filtrar alunos que NÃO pagaram
-      const unpaidStudents = activeStudents.filter(s => !paidStudentIds.has(s.id))
+      // 1. MENSAL/MENSAL RECORRENTE: verificar mensalidade do mês anterior
+      if (mensalStudents.length > 0) {
+        const previousMonth = now.getMonth() === 0 ? 11 : now.getMonth() - 1
+        const previousYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear()
+        const startOfPreviousMonth = new Date(previousYear, previousMonth, 1)
+        const endOfPreviousMonth = new Date(previousYear, previousMonth + 1, 0, 23, 59, 59, 999)
+
+        const mensalidadeEntries = await financialEntryRepository.findEntries(10000, 0, {
+          type: 'entrada',
+          subtype: 'mensalidade',
+          status: 'efetivado',
+          dateReferenceFrom: startOfPreviousMonth,
+          dateReferenceTo: endOfPreviousMonth
+        })
+        const paidMensalIds = new Set(mensalidadeEntries.map(e => e.get('studentId')).filter(Boolean))
+        
+        mensalStudents.forEach(s => {
+          if (!paidMensalIds.has(s.id)) {
+            unpaidStudents.push(s)
+          }
+        })
+      }
+
+      // 2. SEMESTRAL: verificar se tem pagamento_semestral nos últimos 6 meses
+      if (semestralStudents.length > 0) {
+        const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 6, 1)
+        
+        const semestralEntries = await financialEntryRepository.findEntries(10000, 0, {
+          type: 'entrada',
+          subtype: 'pagamento_semestral',
+          status: 'efetivado',
+          dateReferenceFrom: sixMonthsAgo,
+          dateReferenceTo: now
+        })
+        const paidSemestralIds = new Set(semestralEntries.map(e => e.get('studentId')).filter(Boolean))
+        
+        semestralStudents.forEach(s => {
+          if (!paidSemestralIds.has(s.id)) {
+            unpaidStudents.push(s)
+          }
+        })
+      }
+
+      // 3. ANUAL: verificar se tem pagamento_anual nos últimos 12 meses
+      if (anualStudents.length > 0) {
+        const oneYearAgo = new Date(now.getFullYear() - 1, now.getMonth(), 1)
+        
+        const anualEntries = await financialEntryRepository.findEntries(10000, 0, {
+          type: 'entrada',
+          subtype: 'pagamento_anual',
+          status: 'efetivado',
+          dateReferenceFrom: oneYearAgo,
+          dateReferenceTo: now
+        })
+        const paidAnualIds = new Set(anualEntries.map(e => e.get('studentId')).filter(Boolean))
+        
+        anualStudents.forEach(s => {
+          if (!paidAnualIds.has(s.id)) {
+            unpaidStudents.push(s)
+          }
+        })
+      }
 
       return unpaidStudents
     } catch (error) {
       console.error('Error fetching unpaid students:', error)
+      return []
+    }
+  }
+
+  /**
+   * Busca alunos semestrais/anuais com contrato próximo do vencimento.
+   * - Semestral: pagamento_semestral com dateReference há mais de 5 meses
+   * - Anual: pagamento_anual com dateReference há mais de 11 meses
+   */
+  async getStudentsWithExpiringContracts() {
+    try {
+      const now = new Date()
+      const expiringStudents = []
+
+      // Buscar todos os alunos ativos semestrais e anuais
+      const activeStudents = await this.repository.findActive(10000, 0, { active: true })
+      const semestralStudents = activeStudents.filter(s => s.get('tipoPlano') === 'Semestral')
+      const anualStudents = activeStudents.filter(s => s.get('tipoPlano') === 'Anual')
+
+      // SEMESTRAL: pegar quem pagou entre 5-6 meses atrás (próximo de vencer)
+      if (semestralStudents.length > 0) {
+        const fiveMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1)
+        const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 6, 1)
+        
+        const semestralEntries = await financialEntryRepository.findEntries(10000, 0, {
+          type: 'entrada',
+          subtype: 'pagamento_semestral',
+          status: 'efetivado',
+          dateReferenceFrom: sixMonthsAgo,
+          dateReferenceTo: fiveMonthsAgo
+        })
+        const expiringSemestralIds = new Set(semestralEntries.map(e => e.get('studentId')).filter(Boolean))
+        
+        semestralStudents.forEach(s => {
+          if (expiringSemestralIds.has(s.id)) {
+            expiringStudents.push({ student: s, type: 'semestral' })
+          }
+        })
+      }
+
+      // ANUAL: pegar quem pagou entre 11-12 meses atrás (próximo de vencer)
+      if (anualStudents.length > 0) {
+        const elevenMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 11, 1)
+        const twelveMonthsAgo = new Date(now.getFullYear() - 1, now.getMonth(), 1)
+        
+        const anualEntries = await financialEntryRepository.findEntries(10000, 0, {
+          type: 'entrada',
+          subtype: 'pagamento_anual',
+          status: 'efetivado',
+          dateReferenceFrom: twelveMonthsAgo,
+          dateReferenceTo: elevenMonthsAgo
+        })
+        const expiringAnualIds = new Set(anualEntries.map(e => e.get('studentId')).filter(Boolean))
+        
+        anualStudents.forEach(s => {
+          if (expiringAnualIds.has(s.id)) {
+            expiringStudents.push({ student: s, type: 'anual' })
+          }
+        })
+      }
+
+      return expiringStudents
+    } catch (error) {
+      console.error('Error fetching expiring contracts:', error)
       return []
     }
   }

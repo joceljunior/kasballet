@@ -42,6 +42,8 @@
           <option value="">Selecione</option>
           <template v-if="form.type === 'entrada'">
             <option value="mensalidade">Mensalidade</option>
+            <option value="pagamento_semestral">Pagamento Semestral</option>
+            <option value="pagamento_anual">Pagamento Anual</option>
             <option value="rematricula">Rematrícula</option>
             <option value="taxa_participacao">Taxa de Participação</option>
             <option value="figurino">Figurino</option>
@@ -316,10 +318,12 @@ onMounted(async () => {
 
 async function handleSubmit() {
   error.value = null
-  const subtypesRequiringStudent = ['mensalidade', 'rematricula', 'taxa_participacao', 'figurino']
+  const subtypesRequiringStudent = ['mensalidade', 'pagamento_semestral', 'pagamento_anual', 'rematricula', 'taxa_participacao', 'figurino']
   if (form.value.type === 'entrada' && subtypesRequiringStudent.includes(form.value.subtype) && !form.value.studentId) {
     const subtypeLabels = {
       mensalidade: 'mensalidade',
+      pagamento_semestral: 'pagamento semestral',
+      pagamento_anual: 'pagamento anual',
       rematricula: 'rematrícula',
       taxa_participacao: 'taxa de participação',
       figurino: 'figurino'
@@ -348,6 +352,8 @@ async function handleSubmit() {
       const studentName = selectedStudentName.value || ''
       const subtypeLabelsDesc = {
         mensalidade: 'Mensalidade',
+        pagamento_semestral: 'Pagamento Semestral',
+        pagamento_anual: 'Pagamento Anual',
         rematricula: 'Rematrícula',
         taxa_participacao: 'Taxa de Participação',
         figurino: 'Figurino'
