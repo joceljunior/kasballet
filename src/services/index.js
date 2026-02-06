@@ -181,26 +181,28 @@ export class StudentService {
   }
 
   /**
-   * Busca alunos ativos que NÃO pagaram a mensalidade do mês atual.
+   * Busca alunos ativos que NÃO pagaram a mensalidade do mês ANTERIOR ao atual.
    * Retorna array de alunos com informações de pagamento.
    */
   async getStudentsWithoutPaymentThisMonth() {
     try {
-      // Obter início e fim do mês atual
+      // Obter início e fim do mês ANTERIOR
       const now = new Date()
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
+      const previousMonth = now.getMonth() === 0 ? 11 : now.getMonth() - 1
+      const previousYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear()
+      const startOfPreviousMonth = new Date(previousYear, previousMonth, 1)
+      const endOfPreviousMonth = new Date(previousYear, previousMonth + 1, 0, 23, 59, 59, 999)
 
       // Buscar todos os alunos ativos
       const activeStudents = await this.repository.findActive(10000, 0, { active: true })
       if (!activeStudents.length) return []
 
-      // Buscar todas as mensalidades do mês atual
+      // Buscar todas as mensalidades do mês anterior
       const entries = await financialEntryRepository.findEntries(10000, 0, {
         type: 'entrada',
         subtype: 'mensalidade',
-        dateFrom: startOfMonth,
-        dateTo: endOfMonth
+        dateFrom: startOfPreviousMonth,
+        dateTo: endOfPreviousMonth
       })
 
       // Criar set de studentIds que pagaram

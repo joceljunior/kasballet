@@ -106,7 +106,7 @@
                 </div>
 
                 <div class="md:col-span-2">
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Possui Alergia?</label>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Possui Alergia/Restrição Alimentar?</label>
                   <div class="flex items-center gap-6">
                     <label class="flex items-center gap-2 cursor-pointer">
                       <input type="radio" :value="true" v-model="form.hasAllergy" class="w-4 h-4 text-green-600 focus:ring-green-500" />
@@ -221,7 +221,6 @@
               </h2>
               <div class="space-y-4">
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Turmas de Interesse</label>
                   <p class="text-xs text-gray-500 mb-2">Selecione uma ou mais turmas.</p>
                   <div v-if="loadingCrews" class="text-gray-500 text-sm">Carregando turmas...</div>
                   <div v-else class="flex flex-wrap gap-3">
@@ -232,7 +231,8 @@
                       :class="{ 'border-green-500 bg-green-50': form.crewIds.includes(c.id) }"
                     >
                       <input type="checkbox" :value="c.id" v-model="form.crewIds" class="rounded text-green-600" />
-                      <span>{{ c.get('Name') }}</span>
+                      <span class="font-medium">{{ c.get('Name') }}</span>
+                      <span v-if="c.get('Key')" class="text-xs text-gray-500">({{ c.get('Key') }})</span>
                     </label>
                   </div>
                 </div>
@@ -242,6 +242,7 @@
                     <label class="block text-sm font-medium text-gray-700 mb-2">Plano de Pagamento</label>
                     <select v-model="form.tipoPlano" class="input">
                       <option value="">Selecione</option>
+                      <option value="MensalRecorrente">Mensal Recorrente</option>
                       <option value="Mensal">Mensal</option>
                       <option value="Semestral">Semestral</option>
                       <option value="Anual">Anual</option>

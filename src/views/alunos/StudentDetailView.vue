@@ -269,7 +269,8 @@ function formatTipoPlano(tipo) {
   const map = {
     'PIX': 'Mensal',
     'Mensal': 'Mensal',
-    'RecorrenteMensal': 'Mensal',
+    'MensalRecorrente': 'Mensal Recorrente',
+    'RecorrenteMensal': 'Mensal Recorrente',
     'RecorrenteAnual': 'Anual',
     'Anual': 'Anual',
     'RecorrenteSemestral': 'Semestral',

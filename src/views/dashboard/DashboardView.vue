@@ -252,9 +252,11 @@ const stats = ref({
 })
 const unpaidStudents = ref([])
 
-// Nome do mês atual
+// Nome do mês anterior (para exibir inadimplentes do mês passado)
 const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
-const currentMonthName = monthNames[new Date().getMonth()]
+const now = new Date()
+const previousMonth = now.getMonth() === 0 ? 11 : now.getMonth() - 1
+const currentMonthName = monthNames[previousMonth]
 
 function formatMoney(v) {
   const n = Number(v)
@@ -265,7 +267,8 @@ function formatTipoPlano(tipo) {
   const map = {
     'PIX': 'Mensal',
     'Mensal': 'Mensal',
-    'RecorrenteMensal': 'Mensal',
+    'MensalRecorrente': 'Mensal Recorrente',
+    'RecorrenteMensal': 'Mensal Recorrente',
     'RecorrenteAnual': 'Anual',
     'Anual': 'Anual',
     'RecorrenteSemestral': 'Semestral',
@@ -278,13 +281,15 @@ function getTipoPlanoClass(tipo) {
   // Normalizar para as novas nomenclaturas
   const normalized = {
     'PIX': 'Mensal',
-    'RecorrenteMensal': 'Mensal',
+    'MensalRecorrente': 'MensalRecorrente',
+    'RecorrenteMensal': 'MensalRecorrente',
     'RecorrenteAnual': 'Anual',
     'RecorrenteSemestral': 'Semestral'
   }[tipo] || tipo
   
   const classes = {
     'Mensal': 'bg-blue-100 text-blue-800',
+    'MensalRecorrente': 'bg-indigo-100 text-indigo-800',
     'Semestral': 'bg-purple-100 text-purple-800',
     'Anual': 'bg-green-100 text-green-800'
   }
