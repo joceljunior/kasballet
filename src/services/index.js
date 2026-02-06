@@ -566,6 +566,15 @@ export class FinancialEntryService {
     return this.repository.delete(id)
   }
 
+  /** Deleta TODOS os lançamentos financeiros (usar com cuidado!) */
+  async deleteAllEntries() {
+    const entries = await this.repository.findEntries(10000, 0, {})
+    for (const entry of entries) {
+      await this.repository.delete(entry.id)
+    }
+    return entries.length
+  }
+
   /** Histórico de mensalidades do aluno */
   async getEntriesByStudent(studentId, page = 0, pageSize = 100) {
     const skip = page * pageSize

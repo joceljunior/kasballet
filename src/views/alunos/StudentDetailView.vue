@@ -205,7 +205,7 @@
               <tbody class="divide-y divide-gray-200">
                 <tr v-for="e in paymentHistory" :key="e.id">
                   <td class="px-3 py-2 text-sm text-gray-900">{{ formatDate(e.get('date')) }}</td>
-                  <td class="px-3 py-2 text-sm text-gray-600">{{ formatMonthYear(e.get('dateReference')) }}</td>
+                  <td class="px-3 py-2 text-sm text-gray-600">{{ formatDateShort(e.get('dateReference')) }}</td>
                   <td class="px-3 py-2 text-sm">
                     <span :class="getSubtypeClass(e.get('subtype'))" class="px-2 py-0.5 rounded-full text-xs font-medium">
                       {{ formatSubtype(e.get('subtype')) }}
@@ -276,12 +276,11 @@ function formatMoney(v) {
   return isNaN(n) ? '0,00' : n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
-function formatMonthYear(d) {
+function formatDateShort(d) {
   if (!d) return '-'
   const date = d instanceof Date ? d : new Date(d)
   if (isNaN(date.getTime())) return '-'
-  const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
-  return `${months[date.getMonth()]}/${date.getFullYear()}`
+  return date.toLocaleDateString('pt-BR')
 }
 
 function formatSubtype(subtype) {
@@ -329,7 +328,12 @@ onMounted(async () => {
     studentCrews.value = map[student.value.id] || []
     if (authStore.isMaster) {
       paymentLoading.value = true
-      paymentHistory.value = await financialEntryService.getEntriesByStudent(student.value.id, 0, 100)
+      try {
+        paymentHistory.value = await financialEntryService.getEntriesByStudent(student.value.id, 0, 100)
+      } catch (e) {
+        console.warn('Erro ao carregar histórico financeiro:', e)
+        paymentHistory.value = []
+      }
     }
   } catch (error) {
     console.error('Error loading student:', error)

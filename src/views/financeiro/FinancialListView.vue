@@ -87,7 +87,7 @@
           <tbody class="divide-y divide-gray-200">
             <tr v-for="e in financialStore.entries" :key="e.id" class="hover:bg-gray-50">
               <td class="px-4 py-3 text-sm text-gray-900">{{ formatDate(e.get('date')) || '-' }}</td>
-              <td class="px-4 py-3 text-sm text-gray-600">{{ formatMonthYear(e.get('dateReference')) }}</td>
+              <td class="px-4 py-3 text-sm text-gray-600">{{ formatDateShort(e.get('dateReference')) }}</td>
               <td class="px-4 py-3 text-sm">
                 <span :class="e.get('type') === 'entrada' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'" class="px-2 py-0.5 text-xs font-medium rounded-full">
                   {{ subtypeLabel(e.get('type'), e.get('subtype')) }}
@@ -151,12 +151,11 @@ function formatDate(d) {
   return isNaN(x.getTime()) ? '—' : x.toLocaleDateString('pt-BR')
 }
 
-function formatMonthYear(d) {
+function formatDateShort(d) {
   if (!d) return '-'
   const date = d instanceof Date ? d : new Date(d)
   if (isNaN(date.getTime())) return '-'
-  const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
-  return `${months[date.getMonth()]}/${date.getFullYear()}`
+  return date.toLocaleDateString('pt-BR')
 }
 
 function formatMoney(v) {

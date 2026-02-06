@@ -398,7 +398,9 @@ export class FinancialEntryRepository extends BaseRepository {
       const d = filters.dateReferenceTo instanceof Date ? filters.dateReferenceTo : new Date(filters.dateReferenceTo)
       if (!isNaN(d.getTime())) query.lessThanOrEqualTo('dateReference', d)
     }
-    query.descending('dateReference', 'date')
+    // Ordenar por date, com fallback para createdAt quando date é null
+    query.addDescending('date')
+    query.addDescending('createdAt')
     query.limit(limit)
     query.skip(skip)
     return query.find()

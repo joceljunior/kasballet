@@ -65,9 +65,9 @@
           <p class="text-xs text-gray-500 mt-1">Data em que o pagamento foi realizado</p>
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Mês de Referência *</label>
-          <input v-model="form.dateReference" type="month" required class="input" />
-          <p class="text-xs text-gray-500 mt-1">Mês a que este pagamento se refere</p>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Data de Referência *</label>
+          <input v-model="form.dateReference" type="date" required class="input" />
+          <p class="text-xs text-gray-500 mt-1">Data/período a que este lançamento se refere</p>
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">Valor (R$) *</label>
@@ -210,7 +210,7 @@ const form = ref({
   subtype: '',
   status: 'efetivado',
   date: new Date().toISOString().slice(0, 10),
-  dateReference: new Date().toISOString().slice(0, 7), // Formato YYYY-MM para input type="month"
+  dateReference: new Date().toISOString().slice(0, 10), // Formato YYYY-MM-DD
   value: '',
   description: '',
   studentId: '',
@@ -223,11 +223,6 @@ function getDateInputValue(d) {
   return isNaN(x.getTime()) ? '' : x.toISOString().slice(0, 10)
 }
 
-function getMonthInputValue(d) {
-  if (!d) return ''
-  const x = d instanceof Date ? d : new Date(d)
-  return isNaN(x.getTime()) ? '' : x.toISOString().slice(0, 7)
-}
 
 watch(() => form.value.type, () => {
   if (skipClearWatchers.value) return
@@ -284,7 +279,7 @@ onMounted(async () => {
         subtype: e.get('subtype') || '',
         status: e.get('status') === 'pendente' ? 'pendente' : 'efetivado',
         date: getDateInputValue(e.get('date')),
-        dateReference: getMonthInputValue(e.get('dateReference') || e.get('date')),
+        dateReference: getDateInputValue(e.get('dateReference') || e.get('date')),
         value: e.get('value') ?? '',
         description: e.get('description') || '',
         studentId: sid || '',
@@ -361,19 +356,12 @@ async function handleSubmit() {
       description = `${label} - ${studentName}`
     }
 
-    // Converter dateReference (YYYY-MM) para uma data (primeiro dia do mês)
-    let dateReference = null
-    if (form.value.dateReference) {
-      const [year, month] = form.value.dateReference.split('-').map(Number)
-      dateReference = new Date(year, month - 1, 1)
-    }
-
     const payload = {
       type: form.value.type,
       subtype: form.value.subtype,
       status: form.value.status === 'pendente' ? 'pendente' : 'efetivado',
       date: form.value.date,
-      dateReference: dateReference,
+      dateReference: form.value.dateReference,
       value: Number(form.value.value) || 0,
       description,
       studentId: (form.value.type === 'entrada' && subtypesRequiringStudent.includes(form.value.subtype)) ? form.value.studentId : null,
