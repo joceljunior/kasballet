@@ -179,6 +179,42 @@ export class StudentService {
   async inactivateStudent(id) {
     return this.repository.update(id, { active: false, inactive: true })
   }
+
+  /**
+   * Busca alunos ativos que NÃO pagaram a mensalidade do mês atual.
+   * Retorna array de alunos com informações de pagamento.
+   */
+  async getStudentsWithoutPaymentThisMonth() {
+    try {
+      // Obter início e fim do mês atual
+      const now = new Date()
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
+
+      // Buscar todos os alunos ativos
+      const activeStudents = await this.repository.findActive(10000, 0, { active: true })
+      if (!activeStudents.length) return []
+
+      // Buscar todas as mensalidades do mês atual
+      const entries = await financialEntryRepository.findEntries(10000, 0, {
+        type: 'entrada',
+        subtype: 'mensalidade',
+        dateFrom: startOfMonth,
+        dateTo: endOfMonth
+      })
+
+      // Criar set de studentIds que pagaram
+      const paidStudentIds = new Set(entries.map(e => e.get('studentId')).filter(Boolean))
+
+      // Filtrar alunos que NÃO pagaram
+      const unpaidStudents = activeStudents.filter(s => !paidStudentIds.has(s.id))
+
+      return unpaidStudents
+    } catch (error) {
+      console.error('Error fetching unpaid students:', error)
+      return []
+    }
+  }
 }
 
 export class CrewService {
