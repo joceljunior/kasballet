@@ -34,22 +34,41 @@
             </div>
 
             <!-- Foto da aluna -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Foto da aluna</label>
-              <div class="flex items-center gap-4">
-                <div class="w-24 h-24 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center flex-shrink-0">
+            <div class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border-2 border-dashed border-green-200">
+              <div class="flex flex-col md:flex-row items-center gap-6">
+                <div class="w-32 h-32 rounded-full overflow-hidden bg-white shadow-lg flex items-center justify-center flex-shrink-0 ring-4 ring-green-100">
                   <img v-if="photoPreview" :src="photoPreview" alt="Preview" class="w-full h-full object-cover" />
-                  <UserCircleIcon v-else class="w-14 h-14 text-gray-400" />
+                  <div v-else class="text-center">
+                    <CameraIcon class="w-10 h-10 text-gray-300 mx-auto" />
+                    <span class="text-xs text-gray-400 mt-1">Sem foto</span>
+                  </div>
                 </div>
-                <div>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    @change="onPhotoChange"
-                    class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
-                  />
-                  <p class="text-xs text-gray-500 mt-1">JPG, PNG. Opcional.</p>
+                <div class="text-center md:text-left">
+                  <h3 class="font-semibold text-gray-900 mb-2">Foto de Perfil da Aluna</h3>
+                  <p class="text-sm text-gray-600 mb-3">Adicione uma foto para identificação</p>
+                  <label class="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg cursor-pointer hover:bg-green-700 transition-colors">
+                    <CameraIcon class="w-5 h-5" />
+                    <span>Selecionar Imagem</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      @change="onPhotoChange"
+                      class="hidden"
+                    />
+                  </label>
+                  <p class="text-xs text-gray-500 mt-2">JPG ou PNG. Opcional.</p>
                 </div>
+              </div>
+              
+              <!-- Autorização de uso de imagem -->
+              <div class="mt-4 pt-4 border-t border-green-200">
+                <label class="flex items-start gap-3 cursor-pointer">
+                  <input v-model="form.useImage" type="checkbox" class="w-5 h-5 mt-0.5 rounded border-gray-300 text-green-600 focus:ring-green-500" />
+                  <div>
+                    <span class="text-sm font-medium text-gray-700">Autorizo o uso da imagem</span>
+                    <p class="text-xs text-gray-500 mt-0.5">Autorizo o uso da imagem da aluna para fins de divulgação em redes sociais e materiais da escola.</p>
+                  </div>
+                </label>
               </div>
             </div>
 
@@ -217,7 +236,7 @@
                   </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Plano</label>
                     <select v-model="form.tipoPlano" class="input">
@@ -229,16 +248,24 @@
                     </select>
                   </div>
 
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Melhor Dia de Pagamento</label>
-                <select v-model.number="form.melhorDiaPagamento" class="input">
-                  <option value="">Selecione</option>
-                  <option :value="5">Dia 5</option>
-                  <option :value="10">Dia 10</option>
-                  <option :value="15">Dia 15</option>
-                  <option :value="20">Dia 20</option>
-                </select>
-              </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Valor da Mensalidade</label>
+                    <div class="relative">
+                      <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">R$</span>
+                      <input v-model.number="form.valorMensalidade" type="number" step="0.01" min="0" class="input pl-10" placeholder="0,00" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Melhor Dia de Pagamento</label>
+                    <select v-model.number="form.melhorDiaPagamento" class="input">
+                      <option value="">Selecione</option>
+                      <option :value="5">Dia 5</option>
+                      <option :value="10">Dia 10</option>
+                      <option :value="15">Dia 15</option>
+                      <option :value="20">Dia 20</option>
+                    </select>
+                  </div>
                 </div>
               </div>
             </div>
@@ -265,7 +292,7 @@
 import { ref, onMounted } from 'vue'
 import { studentService, crewService } from '../../services/index.js'
 import Parse from '../../services/parse.js'
-import { UserCircleIcon } from '@heroicons/vue/24/outline'
+import { UserCircleIcon, CameraIcon } from '@heroicons/vue/24/outline'
 
 const loading = ref(false)
 const loadingCrews = ref(false)
@@ -313,6 +340,7 @@ const form = ref({
   schoolGrade: '',
   crewIds: [],
   tipoPlano: '',
+  valorMensalidade: null,
   melhorDiaPagamento: null,
   active: false,
   dateRegistry: new Date(),

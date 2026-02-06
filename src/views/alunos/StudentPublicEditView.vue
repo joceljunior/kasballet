@@ -51,23 +51,42 @@
               {{ error }}
             </div>
 
-            <!-- Foto -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Foto</label>
-              <div class="flex items-center gap-4">
-                <div class="w-20 h-20 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center flex-shrink-0">
+            <!-- Foto da aluna -->
+            <div class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border-2 border-dashed border-green-200">
+              <div class="flex flex-col md:flex-row items-center gap-6">
+                <div class="w-28 h-28 rounded-full overflow-hidden bg-white shadow-lg flex items-center justify-center flex-shrink-0 ring-4 ring-green-100">
                   <img v-if="photoPreview || currentPhotoUrl" :src="photoPreview || currentPhotoUrl" alt="Preview" class="w-full h-full object-cover" />
-                  <UserCircleIcon v-else class="w-12 h-12 text-gray-400" />
+                  <div v-else class="text-center">
+                    <CameraIcon class="w-8 h-8 text-gray-300 mx-auto" />
+                    <span class="text-xs text-gray-400 mt-1">Sem foto</span>
+                  </div>
                 </div>
-                <div>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    @change="onPhotoChange"
-                    class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
-                  />
-                  <p class="text-xs text-gray-500 mt-1">JPG, PNG. Opcional.</p>
+                <div class="text-center md:text-left">
+                  <h3 class="font-semibold text-gray-900 mb-2">Foto de Perfil</h3>
+                  <p class="text-sm text-gray-600 mb-3">Atualize a foto da aluna</p>
+                  <label class="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg cursor-pointer hover:bg-green-700 transition-colors">
+                    <CameraIcon class="w-5 h-5" />
+                    <span>Selecionar Imagem</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      @change="onPhotoChange"
+                      class="hidden"
+                    />
+                  </label>
+                  <p class="text-xs text-gray-500 mt-2">JPG ou PNG. Opcional.</p>
                 </div>
+              </div>
+              
+              <!-- Autorização de uso de imagem -->
+              <div class="mt-4 pt-4 border-t border-green-200">
+                <label class="flex items-start gap-3 cursor-pointer">
+                  <input v-model="form.useImage" type="checkbox" class="w-5 h-5 mt-0.5 rounded border-gray-300 text-green-600 focus:ring-green-500" />
+                  <div>
+                    <span class="text-sm font-medium text-gray-700">Autorizo o uso da imagem</span>
+                    <p class="text-xs text-gray-500 mt-0.5">Autorizo o uso da imagem da aluna para fins de divulgação em redes sociais e materiais da escola.</p>
+                  </div>
+                </label>
               </div>
             </div>
 
@@ -226,7 +245,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { studentService } from '../../services/index.js'
 import Parse from '../../services/parse.js'
-import { UserCircleIcon } from '@heroicons/vue/24/outline'
+import { UserCircleIcon, CameraIcon } from '@heroicons/vue/24/outline'
 
 const route = useRoute()
 const loading = ref(true)
@@ -255,7 +274,8 @@ const form = ref({
   addressNumber: '',
   complement: '',
   addressDistrict: '',
-  addressCity: ''
+  addressCity: '',
+  useImage: true
 })
 
 function formatDateForInput(date) {
@@ -306,7 +326,8 @@ onMounted(async () => {
       addressNumber: s.get('addressNumber') || '',
       complement: s.get('complement') || '',
       addressDistrict: s.get('addressDistrict') || '',
-      addressCity: s.get('addressCity') || ''
+      addressCity: s.get('addressCity') || '',
+      useImage: s.get('useImage') !== undefined ? s.get('useImage') : true
     }
   } catch (err) {
     console.error('Erro ao carregar aluna:', err)
@@ -346,7 +367,8 @@ async function handleSubmit() {
       addressNumber: form.value.addressNumber,
       complement: form.value.complement,
       addressDistrict: form.value.addressDistrict,
-      addressCity: form.value.addressCity
+      addressCity: form.value.addressCity,
+      useImage: form.value.useImage
     }
     
     // Adicionar foto se uma nova foi selecionada

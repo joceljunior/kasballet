@@ -136,8 +136,8 @@
             </svg>
             Turmas e Plano
           </h2>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div class="md:col-span-2 lg:col-span-4">
               <dt class="text-sm font-medium text-gray-500">Turmas</dt>
               <dd class="mt-1">
                 <div v-if="!studentCrews.length" class="text-sm text-gray-500">Nenhuma turma vinculada</div>
@@ -157,8 +157,25 @@
               <dd class="mt-1 text-sm text-gray-900">{{ formatTipoPlano(student.get('tipoPlano')) }}</dd>
             </div>
             <div>
+              <dt class="text-sm font-medium text-gray-500">Valor da Mensalidade</dt>
+              <dd class="mt-1 text-sm text-gray-900 font-semibold text-green-600">
+                {{ student.get('valorMensalidade') ? 'R$ ' + formatMoney(student.get('valorMensalidade')) : '-' }}
+              </dd>
+            </div>
+            <div>
               <dt class="text-sm font-medium text-gray-500">Melhor Dia de Pagamento</dt>
-              <dd class="mt-1 text-sm text-gray-900">{{ student.get('melhorDiaPagamento') || '-' }}</dd>
+              <dd class="mt-1 text-sm text-gray-900">{{ student.get('melhorDiaPagamento') ? 'Dia ' + student.get('melhorDiaPagamento') : '-' }}</dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Uso de Imagem</dt>
+              <dd class="mt-1">
+                <span 
+                  :class="student.get('useImage') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'"
+                  class="px-2 py-1 text-xs font-medium rounded-full"
+                >
+                  {{ student.get('useImage') ? 'Autorizado' : 'Não autorizado' }}
+                </span>
+              </dd>
             </div>
           </div>
         </div>
