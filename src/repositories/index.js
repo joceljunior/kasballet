@@ -395,10 +395,10 @@ export class FinancialEntryRepository extends BaseRepository {
   }
 
   /**
-   * Histórico de mensalidades de um aluno (entrada, mensalidade, studentId)
+   * Histórico de lançamentos de um aluno (todas as entradas vinculadas: mensalidade, rematrícula, taxa, figurino)
    */
   async findByStudent(studentId, limit = 100, skip = 0) {
-    return this.findEntries(limit, skip, { type: 'entrada', subtype: 'mensalidade', studentId })
+    return this.findEntries(limit, skip, { type: 'entrada', studentId })
   }
 
   /**

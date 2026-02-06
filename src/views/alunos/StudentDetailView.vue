@@ -186,21 +186,29 @@
             <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
             </svg>
-            Histórico de Pagamentos (Mensalidades)
+            Histórico Financeiro
           </h2>
           <div v-if="paymentLoading" class="text-sm text-gray-500 py-2">Carregando...</div>
-          <div v-else-if="!paymentHistory.length" class="text-sm text-gray-500 py-2">Nenhuma mensalidade lançada.</div>
+          <div v-else-if="!paymentHistory.length" class="text-sm text-gray-500 py-2">Nenhum lançamento registrado.</div>
           <div v-else class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
               <thead class="bg-gray-50">
                 <tr>
                   <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Descrição</th>
                   <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Valor</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-gray-200">
                 <tr v-for="e in paymentHistory" :key="e.id">
                   <td class="px-3 py-2 text-sm text-gray-900">{{ formatDate(e.get('date')) }}</td>
+                  <td class="px-3 py-2 text-sm">
+                    <span :class="getSubtypeClass(e.get('subtype'))" class="px-2 py-0.5 rounded-full text-xs font-medium">
+                      {{ formatSubtype(e.get('subtype')) }}
+                    </span>
+                  </td>
+                  <td class="px-3 py-2 text-sm text-gray-600">{{ e.get('description') || '-' }}</td>
                   <td class="px-3 py-2 text-sm text-right text-green-700 font-medium">R$ {{ formatMoney(e.get('value')) }}</td>
                 </tr>
               </tbody>
@@ -263,6 +271,30 @@ const loading = ref(true)
 function formatMoney(v) {
   const n = Number(v)
   return isNaN(n) ? '0,00' : n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+function formatSubtype(subtype) {
+  const map = {
+    'mensalidade': 'Mensalidade',
+    'rematricula': 'Rematrícula',
+    'taxa_participacao': 'Taxa de Participação',
+    'figurino': 'Figurino',
+    'vendas': 'Vendas',
+    'outros': 'Outros'
+  }
+  return map[subtype] || subtype || '-'
+}
+
+function getSubtypeClass(subtype) {
+  const classes = {
+    'mensalidade': 'bg-green-100 text-green-800',
+    'rematricula': 'bg-blue-100 text-blue-800',
+    'taxa_participacao': 'bg-purple-100 text-purple-800',
+    'figurino': 'bg-pink-100 text-pink-800',
+    'vendas': 'bg-amber-100 text-amber-800',
+    'outros': 'bg-gray-100 text-gray-800'
+  }
+  return classes[subtype] || 'bg-gray-100 text-gray-800'
 }
 
 function formatTipoPlano(tipo) {

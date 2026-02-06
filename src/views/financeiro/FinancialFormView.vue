@@ -333,13 +333,27 @@ async function handleSubmit() {
 
   loading.value = true
   try {
+    // Gerar descrição automática para lançamentos vinculados a aluna
+    let description = String(form.value.description || '').trim()
+    if (form.value.type === 'entrada' && subtypesRequiringStudent.includes(form.value.subtype) && form.value.studentId) {
+      const studentName = selectedStudentName.value || ''
+      const subtypeLabelsDesc = {
+        mensalidade: 'Mensalidade',
+        rematricula: 'Rematrícula',
+        taxa_participacao: 'Taxa de Participação',
+        figurino: 'Figurino'
+      }
+      const label = subtypeLabelsDesc[form.value.subtype] || form.value.subtype
+      description = `${label} - ${studentName}`
+    }
+
     const payload = {
       type: form.value.type,
       subtype: form.value.subtype,
       status: form.value.status === 'pendente' ? 'pendente' : 'efetivado',
       date: form.value.date,
       value: Number(form.value.value) || 0,
-      description: String(form.value.description || '').trim(),
+      description,
       studentId: (form.value.type === 'entrada' && subtypesRequiringStudent.includes(form.value.subtype)) ? form.value.studentId : null,
       teacherId: (form.value.type === 'saida' && form.value.subtype === 'pagamento') ? form.value.teacherId : null
     }
