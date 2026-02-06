@@ -184,7 +184,7 @@
                   </div>
                 </div>
                 <div>
-                  <p class="text-xs text-gray-500">Tipo de Plano</p>
+                  <p class="text-xs text-gray-500">Plano de Pagamento</p>
                   <p class="text-sm text-gray-900">{{ formatTipoPlano(student.get('tipoPlano')) }}</p>
                 </div>
                 <div>
@@ -244,10 +244,13 @@ function formatDate(date) {
 
 function formatTipoPlano(tipo) {
   const map = {
-    'PIX': 'PIX',
-    'RecorrenteMensal': 'Recorrente Mensal',
-    'RecorrenteAnual': 'Recorrente Anual',
-    'RecorrenteSemestral': 'Recorrente Semestral'
+    'PIX': 'Mensal',
+    'Mensal': 'Mensal',
+    'RecorrenteMensal': 'Mensal',
+    'RecorrenteAnual': 'Anual',
+    'Anual': 'Anual',
+    'RecorrenteSemestral': 'Semestral',
+    'Semestral': 'Semestral'
   }
   return map[tipo] || '-'
 }

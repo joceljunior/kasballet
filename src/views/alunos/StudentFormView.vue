@@ -34,13 +34,14 @@
             </div>
           </div>
           
-          <!-- Autorização de uso de imagem -->
+          <!-- Autorização de uso de imagem (obrigatório) -->
           <div class="mt-4 pt-4 border-t border-green-200">
             <label class="flex items-start gap-3 cursor-pointer">
-              <input v-model="form.useImage" type="checkbox" class="w-5 h-5 mt-0.5 rounded border-gray-300 text-green-600 focus:ring-green-500" />
+              <input v-model="form.useImage" type="checkbox" required class="w-5 h-5 mt-0.5 rounded border-gray-300 text-green-600 focus:ring-green-500" />
               <div>
-                <span class="text-sm font-medium text-gray-700">Autorizo o uso da imagem</span>
+                <span class="text-sm font-medium text-gray-700">Autorizo o uso da imagem *</span>
                 <p class="text-xs text-gray-500 mt-0.5">Autorizo o uso da imagem da aluna para fins de divulgação em redes sociais e materiais da escola.</p>
+                <p class="text-xs text-red-500 mt-1">Este campo é obrigatório.</p>
               </div>
             </label>
           </div>
@@ -211,13 +212,12 @@
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Plano</label>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Plano de Pagamento</label>
                 <select v-model="form.tipoPlano" class="input">
                   <option value="">Selecione</option>
-                  <option value="PIX">PIX</option>
-                  <option value="RecorrenteMensal">Recorrente Mensal</option>
-                  <option value="RecorrenteAnual">Recorrente Anual</option>
-                  <option value="RecorrenteSemestral">Recorrente Semestral</option>
+                  <option value="Mensal">Mensal</option>
+                  <option value="Semestral">Semestral</option>
+                  <option value="Anual">Anual</option>
                 </select>
               </div>
 

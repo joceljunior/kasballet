@@ -153,7 +153,7 @@
               </dd>
             </div>
             <div>
-              <dt class="text-sm font-medium text-gray-500">Tipo de Plano</dt>
+              <dt class="text-sm font-medium text-gray-500">Plano de Pagamento</dt>
               <dd class="mt-1 text-sm text-gray-900">{{ formatTipoPlano(student.get('tipoPlano')) }}</dd>
             </div>
             <div>
@@ -267,10 +267,13 @@ function formatMoney(v) {
 
 function formatTipoPlano(tipo) {
   const map = {
-    'PIX': 'PIX',
-    'RecorrenteMensal': 'Recorrente Mensal',
-    'RecorrenteAnual': 'Recorrente Anual',
-    'RecorrenteSemestral': 'Recorrente Semestral'
+    'PIX': 'Mensal',
+    'Mensal': 'Mensal',
+    'RecorrenteMensal': 'Mensal',
+    'RecorrenteAnual': 'Anual',
+    'Anual': 'Anual',
+    'RecorrenteSemestral': 'Semestral',
+    'Semestral': 'Semestral'
   }
   return map[tipo] || '-'
 }

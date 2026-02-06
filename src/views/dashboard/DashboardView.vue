@@ -263,22 +263,32 @@ function formatMoney(v) {
 
 function formatTipoPlano(tipo) {
   const map = {
-    'PIX': 'PIX',
-    'RecorrenteMensal': 'Recorrente Mensal',
-    'RecorrenteAnual': 'Recorrente Anual',
-    'RecorrenteSemestral': 'Recorrente Semestral'
+    'PIX': 'Mensal',
+    'Mensal': 'Mensal',
+    'RecorrenteMensal': 'Mensal',
+    'RecorrenteAnual': 'Anual',
+    'Anual': 'Anual',
+    'RecorrenteSemestral': 'Semestral',
+    'Semestral': 'Semestral'
   }
   return map[tipo] || tipo || 'Não definido'
 }
 
 function getTipoPlanoClass(tipo) {
+  // Normalizar para as novas nomenclaturas
+  const normalized = {
+    'PIX': 'Mensal',
+    'RecorrenteMensal': 'Mensal',
+    'RecorrenteAnual': 'Anual',
+    'RecorrenteSemestral': 'Semestral'
+  }[tipo] || tipo
+  
   const classes = {
-    'PIX': 'bg-blue-100 text-blue-800',
-    'RecorrenteMensal': 'bg-purple-100 text-purple-800',
-    'RecorrenteAnual': 'bg-green-100 text-green-800',
-    'RecorrenteSemestral': 'bg-indigo-100 text-indigo-800'
+    'Mensal': 'bg-blue-100 text-blue-800',
+    'Semestral': 'bg-purple-100 text-purple-800',
+    'Anual': 'bg-green-100 text-green-800'
   }
-  return classes[tipo] || 'bg-gray-100 text-gray-800'
+  return classes[normalized] || 'bg-gray-100 text-gray-800'
 }
 
 onMounted(async () => {
