@@ -86,28 +86,42 @@ export class StudentService {
   async updateStudent(id, data) {
     const { crewIds, hasAllergy, ...rest } = data
     
+    // Remover campos que não devem ser atualizados
+    delete rest.dateRegistry // Data de registro não pode ser alterada
+    delete rest.objectId
+    delete rest.createdAt
+    delete rest.updatedAt
+    
     // Converter foto se necessário
     if (rest.photo && typeof File !== 'undefined' && rest.photo instanceof File) {
       rest.photo = new Parse.File(rest.photo.name, rest.photo)
+    } else if (rest.photo && typeof rest.photo === 'object' && rest.photo.url) {
+      // Se já é um Parse.File existente, não enviar (evita erro)
+      delete rest.photo
     }
     
     // Converter datas se necessário
     if (rest.birthday && typeof rest.birthday === 'string') {
       rest.birthday = new Date(rest.birthday)
     }
-    if (rest.dateRegistry && typeof rest.dateRegistry === 'string') {
-      rest.dateRegistry = new Date(rest.dateRegistry)
-    }
     
     // Garantir tipos numéricos
-    if (rest.valorMensalidade !== undefined && rest.valorMensalidade !== null) {
+    if (rest.valorMensalidade !== undefined && rest.valorMensalidade !== null && rest.valorMensalidade !== '') {
       rest.valorMensalidade = Number(rest.valorMensalidade) || 0
+    } else if (rest.valorMensalidade === '' || rest.valorMensalidade === null) {
+      rest.valorMensalidade = 0
     }
-    if (rest.melhorDiaPagamento !== undefined && rest.melhorDiaPagamento !== null) {
+    
+    if (rest.melhorDiaPagamento !== undefined && rest.melhorDiaPagamento !== null && rest.melhorDiaPagamento !== '') {
       rest.melhorDiaPagamento = Number(rest.melhorDiaPagamento) || null
+    } else if (rest.melhorDiaPagamento === '') {
+      rest.melhorDiaPagamento = null
     }
+    
     if (rest.addressNumber !== undefined && rest.addressNumber !== null && rest.addressNumber !== '') {
       rest.addressNumber = Number(rest.addressNumber) || 0
+    } else if (rest.addressNumber === '') {
+      rest.addressNumber = null
     }
     
     if (crewIds !== undefined) {
@@ -130,6 +144,8 @@ export class StudentService {
         // Não interrompe a atualização do aluno por causa desse erro
       }
     }
+    
+    console.log('updateStudent payload:', JSON.stringify(rest, null, 2))
     
     if (Object.keys(rest).length) {
       return this.repository.update(id, rest)
