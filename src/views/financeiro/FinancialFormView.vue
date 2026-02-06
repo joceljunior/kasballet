@@ -42,6 +42,9 @@
           <option value="">Selecione</option>
           <template v-if="form.type === 'entrada'">
             <option value="mensalidade">Mensalidade</option>
+            <option value="rematricula">Rematrícula</option>
+            <option value="taxa_participacao">Taxa de Participação</option>
+            <option value="figurino">Figurino</option>
             <option value="vendas">Vendas</option>
             <option value="outros">Outros</option>
           </template>
@@ -66,8 +69,8 @@
         </div>
       </div>
 
-      <!-- Mensalidade: obrigatório Aluna (popup com filtro) -->
-      <div v-if="form.type === 'entrada' && form.subtype === 'mensalidade'">
+      <!-- Mensalidade, Rematrícula, Taxa de Participação, Figurino: obrigatório Aluna (popup com filtro) -->
+      <div v-if="form.type === 'entrada' && ['mensalidade', 'rematricula', 'taxa_participacao', 'figurino'].includes(form.subtype)">
         <label class="block text-sm font-medium text-gray-700 mb-2">Aluna *</label>
         <div
           class="input md:max-w-md flex items-center justify-between gap-2 cursor-pointer"
@@ -304,8 +307,15 @@ onMounted(async () => {
 
 async function handleSubmit() {
   error.value = null
-  if (form.value.type === 'entrada' && form.value.subtype === 'mensalidade' && !form.value.studentId) {
-    error.value = 'Selecione a aluna para mensalidade.'
+  const subtypesRequiringStudent = ['mensalidade', 'rematricula', 'taxa_participacao', 'figurino']
+  if (form.value.type === 'entrada' && subtypesRequiringStudent.includes(form.value.subtype) && !form.value.studentId) {
+    const subtypeLabels = {
+      mensalidade: 'mensalidade',
+      rematricula: 'rematrícula',
+      taxa_participacao: 'taxa de participação',
+      figurino: 'figurino'
+    }
+    error.value = `Selecione a aluna para ${subtypeLabels[form.value.subtype]}.`
     return
   }
   if (form.value.type === 'entrada' && ['vendas','outros'].includes(form.value.subtype) && !String(form.value.description || '').trim()) {
@@ -330,7 +340,7 @@ async function handleSubmit() {
       date: form.value.date,
       value: Number(form.value.value) || 0,
       description: String(form.value.description || '').trim(),
-      studentId: (form.value.type === 'entrada' && form.value.subtype === 'mensalidade') ? form.value.studentId : null,
+      studentId: (form.value.type === 'entrada' && subtypesRequiringStudent.includes(form.value.subtype)) ? form.value.studentId : null,
       teacherId: (form.value.type === 'saida' && form.value.subtype === 'pagamento') ? form.value.teacherId : null
     }
     if (isEdit.value) {
