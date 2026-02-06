@@ -67,6 +67,12 @@ export class StudentService {
     if (crewIds?.length) {
       await studentCrewRepository.setForStudent(student.id, crewIds)
     }
+    
+    // Gerar lançamentos pendentes se tiver valorMensalidade e tipoPlano
+    if (studentData.valorMensalidade && studentData.valorMensalidade > 0) {
+      await this.generatePendingPayments(student.id, student.get('name'), studentData.valorMensalidade, studentData.tipoPlano)
+    }
+    
     return student
   }
 
@@ -84,6 +90,19 @@ export class StudentService {
     if (crewIds !== undefined) {
       await studentCrewRepository.setForStudent(id, crewIds)
     }
+    
+    // Se valorMensalidade mudou, atualizar lançamentos pendentes
+    if (rest.valorMensalidade !== undefined) {
+      const student = await this.repository.findById(id)
+      const studentName = rest.name || student.get('name')
+      const valorMensalidade = rest.valorMensalidade
+      const tipoPlano = rest.tipoPlano !== undefined ? rest.tipoPlano : student.get('tipoPlano')
+      
+      if (valorMensalidade && valorMensalidade > 0) {
+        await this.updateOrGeneratePendingPayments(id, studentName, valorMensalidade, tipoPlano)
+      }
+    }
+    
     if (Object.keys(rest).length) {
       return this.repository.update(id, rest)
     }
@@ -91,9 +110,93 @@ export class StudentService {
   }
 
   /**
+   * Gera lançamentos pendentes de mensalidade para uma aluna.
+   * Quantidade de meses baseada no tipo de plano.
+   */
+  async generatePendingPayments(studentId, studentName, valorMensalidade, tipoPlano) {
+    // Determinar quantidade de meses baseado no plano
+    const monthsMap = {
+      'Mensal': 12,
+      'MensalRecorrente': 12,
+      'Semestral': 6,
+      'Anual': 12
+    }
+    const months = monthsMap[tipoPlano] || 12
+
+    const now = new Date()
+    const entries = []
+
+    for (let i = 0; i < months; i++) {
+      const entryDate = new Date(now.getFullYear(), now.getMonth() + i, 1)
+      entries.push({
+        type: 'entrada',
+        subtype: 'mensalidade',
+        status: 'pendente',
+        date: entryDate,
+        value: valorMensalidade,
+        description: `Mensalidade - ${studentName}`,
+        studentId: studentId,
+        teacherId: null
+      })
+    }
+
+    // Criar todos os lançamentos
+    for (const entry of entries) {
+      await financialEntryRepository.create(entry)
+    }
+  }
+
+  /**
+   * Atualiza lançamentos pendentes existentes ou gera novos se não existirem.
+   * Só atualiza lançamentos com status 'pendente' a partir do mês atual.
+   */
+  async updateOrGeneratePendingPayments(studentId, studentName, valorMensalidade, tipoPlano) {
+    const now = new Date()
+    const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+
+    // Buscar lançamentos pendentes futuros desta aluna
+    const allEntries = await financialEntryRepository.findEntries(1000, 0, {
+      type: 'entrada',
+      subtype: 'mensalidade',
+      studentId: studentId,
+      status: 'pendente'
+    })
+
+    // Filtrar apenas lançamentos a partir do mês atual
+    const futureEntries = allEntries.filter(e => {
+      const entryDate = e.get('date')
+      return entryDate >= startOfCurrentMonth
+    })
+
+    if (futureEntries.length > 0) {
+      // Atualizar valor e descrição dos lançamentos pendentes existentes
+      for (const entry of futureEntries) {
+        await financialEntryRepository.update(entry.id, {
+          value: valorMensalidade,
+          description: `Mensalidade - ${studentName}`
+        })
+      }
+    } else {
+      // Não existem lançamentos pendentes, gerar novos
+      await this.generatePendingPayments(studentId, studentName, valorMensalidade, tipoPlano)
+    }
+  }
+
+  /**
    * Approve student (set active to true)
+   * Também gera lançamentos pendentes se aluno tiver valorMensalidade
    */
   async approveStudent(id) {
+    const student = await this.repository.findById(id)
+    const valorMensalidade = student.get('valorMensalidade')
+    const tipoPlano = student.get('tipoPlano')
+    const studentName = student.get('name')
+
+    // Gerar lançamentos pendentes se tiver valorMensalidade
+    if (valorMensalidade && valorMensalidade > 0) {
+      await this.generatePendingPayments(id, studentName, valorMensalidade, tipoPlano)
+    }
+
     return this.repository.update(id, { active: true })
   }
 
