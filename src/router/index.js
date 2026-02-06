@@ -18,6 +18,12 @@ const router = createRouter({
       meta: { requiresAuth: false }
     },
     {
+      path: '/editar-aluno/:id',
+      name: 'editar-aluno-publico',
+      component: () => import('../views/alunos/StudentPublicEditView.vue'),
+      meta: { requiresAuth: false }
+    },
+    {
       path: '/dashboard',
       component: AppLayout,
       meta: { requiresAuth: true },

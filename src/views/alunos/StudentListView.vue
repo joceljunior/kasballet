@@ -79,10 +79,9 @@
           <div
             v-for="student in studentStore.students"
             :key="student.id"
-            class="card hover:shadow-lg transition-shadow cursor-pointer flex flex-col"
-            @click="$router.push(`/alunos/${student.id}`)"
+            class="card hover:shadow-lg transition-shadow flex flex-col"
           >
-            <div class="flex gap-4">
+            <div class="flex gap-4 cursor-pointer" @click="$router.push(`/alunos/${student.id}`)">
               <div class="w-14 h-14 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
                 <img v-if="getPhotoUrl(student)" :src="getPhotoUrl(student)" :alt="student.get('name')" class="w-full h-full object-cover" />
                 <div v-else class="w-full h-full flex items-center justify-center bg-gray-200">
@@ -94,6 +93,17 @@
                 <p class="text-sm text-gray-600 mt-0.5">{{ formatBirthday(student.get('birthday')) }}</p>
                 <p class="text-sm text-pink-500">{{ getCrewNames(student) }}</p>
               </div>
+            </div>
+            <!-- Link de edição pública (só para alunas aprovadas) -->
+            <div v-if="student.get('active')" class="mt-3 pt-3 border-t border-gray-100">
+              <button 
+                @click.stop="copyEditLink(student.id)"
+                class="text-xs text-gray-500 hover:text-green-600 flex items-center gap-1"
+                :title="'Copiar link de edição para ' + student.get('name')"
+              >
+                <LinkIcon class="w-3.5 h-3.5" />
+                <span>{{ copiedId === student.id ? 'Link copiado!' : 'Copiar link de edição' }}</span>
+              </button>
             </div>
           </div>
         </div>
@@ -111,22 +121,30 @@
           <div
             v-for="student in studentStore.students"
             :key="student.id"
-            class="flex items-center gap-4 px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-0"
-            @click="$router.push(`/alunos/${student.id}`)"
+            class="flex items-center gap-4 px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-0"
           >
-            <div class="w-12 h-12 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
+            <div class="w-12 h-12 rounded-full overflow-hidden bg-gray-100 flex-shrink-0 cursor-pointer" @click="$router.push(`/alunos/${student.id}`)">
               <img v-if="getPhotoUrl(student)" :src="getPhotoUrl(student)" :alt="student.get('name')" class="w-full h-full object-cover" />
               <div v-else class="w-full h-full flex items-center justify-center bg-gray-200">
                 <UserCircleIcon class="w-7 h-7 text-gray-400" />
               </div>
             </div>
-            <div class="flex-1 min-w-0">
+            <div class="flex-1 min-w-0 cursor-pointer" @click="$router.push(`/alunos/${student.id}`)">
               <h3 class="font-medium text-gray-900">{{ student.get('name') }}</h3>
               <p class="text-sm text-gray-500">
                 {{ formatBirthday(student.get('birthday')) }} · 
                 <span class="text-pink-500">{{ getCrewNames(student) }}</span>
               </p>
             </div>
+            <button 
+              v-if="student.get('active')"
+              @click.stop="copyEditLink(student.id)"
+              class="text-xs text-gray-400 hover:text-green-600 flex items-center gap-1 flex-shrink-0"
+              :title="'Copiar link de edição'"
+            >
+              <LinkIcon class="w-4 h-4" />
+              <span class="hidden lg:inline">{{ copiedId === student.id ? 'Copiado!' : 'Link' }}</span>
+            </button>
           </div>
         </div>
       </InfiniteScroll>
@@ -139,19 +157,29 @@
           <div
             v-for="student in studentStore.students"
             :key="student.id"
-            class="card hover:shadow-md flex gap-3 cursor-pointer"
-            @click="$router.push(`/alunos/${student.id}`)"
+            class="card hover:shadow-md flex flex-col"
           >
-            <div class="w-12 h-12 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
-              <img v-if="getPhotoUrl(student)" :src="getPhotoUrl(student)" :alt="student.get('name')" class="w-full h-full object-cover" />
-              <div v-else class="w-full h-full flex items-center justify-center bg-gray-200">
-                <UserCircleIcon class="w-7 h-7 text-gray-400" />
+            <div class="flex gap-3 cursor-pointer" @click="$router.push(`/alunos/${student.id}`)">
+              <div class="w-12 h-12 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
+                <img v-if="getPhotoUrl(student)" :src="getPhotoUrl(student)" :alt="student.get('name')" class="w-full h-full object-cover" />
+                <div v-else class="w-full h-full flex items-center justify-center bg-gray-200">
+                  <UserCircleIcon class="w-7 h-7 text-gray-400" />
+                </div>
+              </div>
+              <div class="flex-1 min-w-0">
+                <h3 class="font-medium text-gray-900">{{ student.get('name') }}</h3>
+                <p class="text-sm text-gray-600">{{ formatBirthday(student.get('birthday')) }}</p>
+                <p class="text-sm text-pink-600 font-medium">{{ getCrewNames(student) }}</p>
               </div>
             </div>
-            <div class="flex-1 min-w-0">
-              <h3 class="font-medium text-gray-900">{{ student.get('name') }}</h3>
-              <p class="text-sm text-gray-600">{{ formatBirthday(student.get('birthday')) }}</p>
-              <p class="text-sm text-pink-600 font-medium">{{ getCrewNames(student) }}</p>
+            <div v-if="student.get('active')" class="mt-2 pt-2 border-t border-gray-100">
+              <button 
+                @click.stop="copyEditLink(student.id)"
+                class="text-xs text-gray-500 hover:text-green-600 flex items-center gap-1"
+              >
+                <LinkIcon class="w-3.5 h-3.5" />
+                <span>{{ copiedId === student.id ? 'Link copiado!' : 'Copiar link de edição' }}</span>
+              </button>
             </div>
           </div>
         </div>
@@ -170,12 +198,26 @@
 import { ref, onMounted } from 'vue'
 import { useStudentStore } from '../../stores/student'
 import InfiniteScroll from '../../components/common/InfiniteScroll.vue'
-import { UserGroupIcon, Squares2X2Icon, ListBulletIcon, UserCircleIcon } from '@heroicons/vue/24/outline'
+import { UserGroupIcon, Squares2X2Icon, ListBulletIcon, UserCircleIcon, LinkIcon } from '@heroicons/vue/24/outline'
 
 const studentStore = useStudentStore()
 const searchQuery = ref('')
 const activeFilter = ref('')
 const viewMode = ref('grid') // 'grid' | 'list'
+const copiedId = ref(null)
+
+async function copyEditLink(studentId) {
+  const url = `${window.location.origin}/editar-aluno/${studentId}`
+  try {
+    await navigator.clipboard.writeText(url)
+    copiedId.value = studentId
+    setTimeout(() => {
+      copiedId.value = null
+    }, 2000)
+  } catch (err) {
+    console.error('Erro ao copiar:', err)
+  }
+}
 
 onMounted(async () => {
   await studentStore.loadStudents(true)
