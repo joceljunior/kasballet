@@ -262,7 +262,6 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useStudentStore } from '../../stores/student'
 import { studentService, crewService } from '../../services/index.js'
-import Parse from '../../services/parse.js'
 import { UserCircleIcon, CameraIcon } from '@heroicons/vue/24/outline'
 
 const route = useRoute()
@@ -400,9 +399,9 @@ async function handleSubmit() {
       payload.birthday = new Date(payload.birthday)
     }
     
-    // Adicionar foto se uma nova foi selecionada
+    // Adicionar foto se uma nova foi selecionada (enviar File nativo, o service converte)
     if (photoFile.value) {
-      payload.photo = new Parse.File(photoFile.value.name, photoFile.value)
+      payload.photo = photoFile.value
     }
     
     if (isEdit.value) {

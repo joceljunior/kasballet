@@ -245,7 +245,6 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { studentService } from '../../services/index.js'
-import Parse from '../../services/parse.js'
 import { UserCircleIcon, CameraIcon } from '@heroicons/vue/24/outline'
 
 const route = useRoute()
@@ -372,9 +371,9 @@ async function handleSubmit() {
       useImage: form.value.useImage
     }
     
-    // Adicionar foto se uma nova foi selecionada
+    // Adicionar foto se uma nova foi selecionada (enviar File nativo, o service converte)
     if (photoFile.value) {
-      payload.photo = new Parse.File(photoFile.value.name, photoFile.value)
+      payload.photo = photoFile.value
     }
     
     await studentService.updateStudent(student.value.id, payload)

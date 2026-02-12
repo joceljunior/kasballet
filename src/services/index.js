@@ -95,8 +95,14 @@ export class StudentService {
     // Converter foto se necessário
     if (rest.photo && typeof File !== 'undefined' && rest.photo instanceof File) {
       rest.photo = new Parse.File(rest.photo.name, rest.photo)
+    } else if (rest.photo instanceof Parse.File) {
+      // Se é um Parse.File novo (sem URL), manter; se já salvo, ignorar
+      if (rest.photo.url()) {
+        delete rest.photo
+      }
+      // Se não tem url(), é um Parse.File novo — manter no payload
     } else if (rest.photo && typeof rest.photo === 'object' && rest.photo.url) {
-      // Se já é um Parse.File existente, não enviar (evita erro)
+      // Outro objeto com url (ex: objeto plain) — ignorar
       delete rest.photo
     }
     
