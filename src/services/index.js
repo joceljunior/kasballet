@@ -579,6 +579,14 @@ export class CrewService {
   async countActiveCrews() {
     return crewRepository.countActive()
   }
+
+  /**
+   * Conta alunos ativos por turma para múltiplas turmas.
+   * Retorna mapa crewId -> count
+   */
+  async countStudentsByCrews(crewIds) {
+    return studentCrewRepository.countStudentsByCrews(crewIds)
+  }
 }
 
 export class RegisterService {

@@ -245,6 +245,47 @@ export class StudentCrewRepository {
   }
 
   /**
+   * Conta alunos ativos por turma para múltiplas turmas.
+   * Retorna mapa crewId -> count (number)
+   */
+  async countStudentsByCrews(crewIds) {
+    if (!crewIds?.length) return {}
+    try {
+      const q = new Parse.Query('StudentCrews')
+      q.containedIn('crewId', crewIds)
+      q.limit(10000)
+      const rows = await q.find()
+
+      // Coletar todos os studentIds únicos
+      const allStudentIds = [...new Set(rows.map(r => r.get('studentId')).filter(Boolean))]
+      if (allStudentIds.length === 0) return {}
+
+      // Buscar apenas alunos ativos
+      const Student = Parse.Object.extend('Student')
+      const studentQuery = new Parse.Query(Student)
+      studentQuery.containedIn('objectId', allStudentIds)
+      studentQuery.equalTo('active', true)
+      studentQuery.limit(10000)
+      const activeStudents = await studentQuery.find()
+      const activeIds = new Set(activeStudents.map(s => s.id))
+
+      // Montar mapa crewId -> count (apenas alunos ativos)
+      const countMap = {}
+      for (const row of rows) {
+        const cid = row.get('crewId')
+        const sid = row.get('studentId')
+        if (cid && sid && activeIds.has(sid)) {
+          countMap[cid] = (countMap[cid] || 0) + 1
+        }
+      }
+      return countMap
+    } catch (error) {
+      console.error('Error in countStudentsByCrews:', error)
+      return {}
+    }
+  }
+
+  /**
    * Busca alunos vinculados a uma turma específica.
    * Retorna apenas alunos ativos (active: true).
    */

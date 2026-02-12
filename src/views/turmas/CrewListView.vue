@@ -62,12 +62,18 @@
           <h3 class="font-semibold text-gray-900">{{ crew.get('Name') }}</h3>
           <p class="text-sm text-gray-600 mt-1">{{ crew.get('Key') }}</p>
           <p class="text-sm text-pink-500 mt-1">{{ getTeacherName(crew) }}</p>
-          <span
-            :class="crew.get('Active') ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'"
-            class="inline-block mt-2 px-2 py-1 text-xs font-medium rounded-full"
-          >
-            {{ crew.get('Active') ? 'Ativa' : 'Inativa' }}
-          </span>
+          <div class="flex items-center gap-2 mt-2">
+            <span
+              :class="crew.get('Active') ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'"
+              class="inline-block px-2 py-1 text-xs font-medium rounded-full"
+            >
+              {{ crew.get('Active') ? 'Ativa' : 'Inativa' }}
+            </span>
+            <span class="inline-flex items-center gap-1 text-xs" :class="getCapacityInfo(crew).colorClass">
+              <UsersIcon class="w-3.5 h-3.5" />
+              {{ getCapacityInfo(crew).text }}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -85,12 +91,18 @@
               <p class="text-sm text-gray-600 mt-1">{{ crew.get('Key') }}</p>
               <p class="text-sm text-pink-500 mt-1">{{ getTeacherName(crew) }}</p>
             </div>
-            <span
-              :class="crew.get('Active') ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'"
-              class="px-3 py-1 text-xs font-medium rounded-full"
-            >
-              {{ crew.get('Active') ? 'Ativa' : 'Inativa' }}
-            </span>
+            <div class="flex items-center gap-3">
+              <span class="inline-flex items-center gap-1 text-xs" :class="getCapacityInfo(crew).colorClass">
+                <UsersIcon class="w-3.5 h-3.5" />
+                {{ getCapacityInfo(crew).text }}
+              </span>
+              <span
+                :class="crew.get('Active') ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'"
+                class="px-3 py-1 text-xs font-medium rounded-full"
+              >
+                {{ crew.get('Active') ? 'Ativa' : 'Inativa' }}
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -102,7 +114,7 @@ import { ref, onMounted, computed, onUnmounted } from 'vue'
 import { useCrewStore } from '../../stores/crew'
 import { useAuthStore } from '../../stores/auth'
 import { teacherService } from '../../services/index.js'
-import { AcademicCapIcon, Squares2X2Icon, ListBulletIcon } from '@heroicons/vue/24/outline'
+import { AcademicCapIcon, Squares2X2Icon, ListBulletIcon, UsersIcon } from '@heroicons/vue/24/outline'
 
 const crewStore = useCrewStore()
 const authStore = useAuthStore()
@@ -118,6 +130,19 @@ function getTeacherName(crew) {
   if (!tid) return '—'
   const t = teacherMap.value[tid]
   return t?.get('username') || '—'
+}
+
+function getStudentCount(crew) {
+  return crewStore.studentCountMap[crew.id] || 0
+}
+
+function getCapacityInfo(crew) {
+  const count = getStudentCount(crew)
+  const max = crew.get('maxStudents')
+  if (!max) return { text: `${count}`, colorClass: 'text-gray-600' }
+  if (count > max) return { text: `${count}/${max}`, colorClass: 'text-red-600 font-semibold' }
+  if (count === max) return { text: `${count}/${max}`, colorClass: 'text-amber-600 font-semibold' }
+  return { text: `${count}/${max}`, colorClass: 'text-gray-600' }
 }
 
 function handleResize() {

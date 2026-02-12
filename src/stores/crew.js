@@ -8,6 +8,7 @@ export const useCrewStore = defineStore('crew', () => {
   const loading = ref(false)
   const error = ref(null)
   const filters = ref({})
+  const studentCountMap = ref({}) // crewId -> number of active students
 
   async function loadCrews() {
     loading.value = true
@@ -20,6 +21,13 @@ export const useCrewStore = defineStore('crew', () => {
         crews.value = await crewService.getCrewsByTeacher(authStore.user.id, 0, 100, filters.value)
       } else {
         crews.value = await crewService.getCrews(0, 100, filters.value)
+      }
+      // Carregar contagem de alunos por turma
+      if (crews.value.length > 0) {
+        const crewIds = crews.value.map(c => c.id)
+        studentCountMap.value = await crewService.countStudentsByCrews(crewIds)
+      } else {
+        studentCountMap.value = {}
       }
     } catch (err) {
       error.value = err.message || 'Erro ao carregar turmas'
@@ -103,6 +111,7 @@ export const useCrewStore = defineStore('crew', () => {
     loading,
     error,
     filters,
+    studentCountMap,
     loadCrews,
     setFilters,
     getCrewById,

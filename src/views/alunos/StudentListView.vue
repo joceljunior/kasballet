@@ -89,7 +89,10 @@
                 </div>
               </div>
               <div class="flex-1 min-w-0">
-                <h3 class="font-semibold text-gray-900 truncate">{{ student.get('name') }}</h3>
+                <div class="flex items-center gap-1.5">
+                  <h3 class="font-semibold text-gray-900 truncate">{{ student.get('name') }}</h3>
+                  <VideoCameraSlashIcon v-if="!student.get('useImage')" class="w-4 h-4 text-red-400 flex-shrink-0" title="Não autorizou uso de imagem" />
+                </div>
                 <p class="text-sm text-gray-600 mt-0.5">{{ formatBirthday(student.get('birthday')) }}</p>
                 <p class="text-sm text-pink-500">{{ getCrewNames(student) }}</p>
               </div>
@@ -130,7 +133,10 @@
               </div>
             </div>
             <div class="flex-1 min-w-0 cursor-pointer" @click="$router.push(`/alunos/${student.id}`)">
-              <h3 class="font-medium text-gray-900">{{ student.get('name') }}</h3>
+              <div class="flex items-center gap-1.5">
+                <h3 class="font-medium text-gray-900">{{ student.get('name') }}</h3>
+                <VideoCameraSlashIcon v-if="!student.get('useImage')" class="w-4 h-4 text-red-400 flex-shrink-0" title="Não autorizou uso de imagem" />
+              </div>
               <p class="text-sm text-gray-500">
                 {{ formatBirthday(student.get('birthday')) }} · 
                 <span class="text-pink-500">{{ getCrewNames(student) }}</span>
@@ -167,7 +173,10 @@
                 </div>
               </div>
               <div class="flex-1 min-w-0">
-                <h3 class="font-medium text-gray-900">{{ student.get('name') }}</h3>
+                <div class="flex items-center gap-1.5">
+                  <h3 class="font-medium text-gray-900">{{ student.get('name') }}</h3>
+                  <VideoCameraSlashIcon v-if="!student.get('useImage')" class="w-4 h-4 text-red-400 flex-shrink-0" title="Não autorizou uso de imagem" />
+                </div>
                 <p class="text-sm text-gray-600">{{ formatBirthday(student.get('birthday')) }}</p>
                 <p class="text-sm text-pink-600 font-medium">{{ getCrewNames(student) }}</p>
               </div>
@@ -198,7 +207,7 @@
 import { ref, onMounted } from 'vue'
 import { useStudentStore } from '../../stores/student'
 import InfiniteScroll from '../../components/common/InfiniteScroll.vue'
-import { UserGroupIcon, Squares2X2Icon, ListBulletIcon, UserCircleIcon, LinkIcon } from '@heroicons/vue/24/outline'
+import { UserGroupIcon, Squares2X2Icon, ListBulletIcon, UserCircleIcon, LinkIcon, VideoCameraSlashIcon } from '@heroicons/vue/24/outline'
 
 const studentStore = useStudentStore()
 const searchQuery = ref('')

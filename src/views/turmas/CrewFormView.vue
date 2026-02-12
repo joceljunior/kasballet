@@ -29,6 +29,11 @@
           </div>
 
           <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Nº Máximo de Alunas</label>
+            <input v-model.number="form.maxStudents" type="number" min="1" class="input" placeholder="Ex: 12" />
+          </div>
+
+          <div>
             <label class="flex items-center">
               <input v-model="form.Active" type="checkbox" class="rounded border-gray-300 text-green-600 focus:ring-green-500" />
               <span class="ml-2 text-sm text-gray-700">Turma Ativa</span>
@@ -69,7 +74,8 @@ const form = ref({
   Name: '',
   Key: '',
   Active: true,
-  teacherId: ''
+  teacherId: '',
+  maxStudents: null
 })
 
 onMounted(async () => {
@@ -84,7 +90,8 @@ onMounted(async () => {
         Name: crew.get('Name') || '',
         Key: crew.get('Key') || '',
         Active: crew.get('Active') !== undefined ? crew.get('Active') : true,
-        teacherId: crew.get('teacherId') || ''
+        teacherId: crew.get('teacherId') || '',
+        maxStudents: crew.get('maxStudents') || null
       }
     } catch (err) {
       error.value = err.message || 'Erro ao carregar turma'
@@ -98,6 +105,7 @@ onMounted(async () => {
 function getPayload() {
   const p = { ...form.value }
   p.teacherId = p.teacherId || null
+  p.maxStudents = p.maxStudents ? Number(p.maxStudents) : null
   return p
 }
 

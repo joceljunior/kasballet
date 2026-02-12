@@ -298,7 +298,7 @@ const crews = ref([])
 onMounted(async () => {
   loadingCrews.value = true
   try {
-    crews.value = await crewService.getCrews(0, 200)
+    crews.value = await crewService.getCrews(0, 200, { active: true })
   } catch (err) {
     console.error('Erro ao carregar turmas:', err)
   } finally {
