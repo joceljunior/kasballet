@@ -320,6 +320,13 @@ export class StudentService {
   }
 
   /**
+   * Count only active students
+   */
+  async countActiveStudents() {
+    return this.repository.countActiveStudents()
+  }
+
+  /**
    * Count pending students (active: false AND inactive: false ou undefined)
    */
   async countPendingStudents() {

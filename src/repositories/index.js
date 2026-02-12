@@ -47,6 +47,13 @@ export class StudentRepository extends BaseRepository {
   }
 
   /**
+   * Count only active students (active: true)
+   */
+  async countActiveStudents() {
+    return this.count({ active: true })
+  }
+
+  /**
    * Count pending students (active: false AND inactive: false ou undefined)
    * Busca alunos onde active é false e inactive não é true
    */

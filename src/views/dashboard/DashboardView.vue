@@ -358,7 +358,7 @@ onMounted(async () => {
     if (authStore.isMaster) {
       // Load master stats - usando contagens reais do banco + financeiro
       const [totalStudents, totalCrews, teachers, pendingStudents, financial, unpaid, expiring] = await Promise.all([
-        studentService.countAllStudents(),
+        studentService.countActiveStudents(),
         crewService.countActiveCrews(),
         userRepository.findByRole('Professora', 1000, 0),
         studentService.countPendingStudents(),

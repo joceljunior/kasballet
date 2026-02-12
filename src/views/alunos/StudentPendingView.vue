@@ -40,6 +40,13 @@
                 Editar
               </router-link>
               <button
+                @click="handleReject(student)"
+                :disabled="studentStore.loading"
+                class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium disabled:opacity-50"
+              >
+                Reprovar
+              </button>
+              <button
                 @click="handleApprove(student.id)"
                 :disabled="studentStore.loading"
                 class="btn-primary"
@@ -254,6 +261,18 @@ function formatTipoPlano(tipo) {
     'Semestral': 'Semestral'
   }
   return map[tipo] || '-'
+}
+
+async function handleReject(student) {
+  const name = student.get('name') || 'este aluno'
+  if (!confirm(`Tem certeza que deseja reprovar e excluir "${name}"? Esta ação não pode ser desfeita.`)) return
+  try {
+    await studentService.deleteStudent(student.id)
+    await studentStore.loadPendingStudents()
+    await loadCrewsForStudents()
+  } catch (error) {
+    console.error('Error rejecting student:', error)
+  }
 }
 
 async function handleApprove(id) {
