@@ -15,8 +15,9 @@ COPY . .
 # Build da aplicação
 RUN npm run build
 
-# Expor porta (Railway define a variável PORT)
+# Porta padrão (Railway injeta PORT em runtime)
+ENV PORT=3000
 EXPOSE 3000
 
-# Comando para servir a aplicação
-CMD ["npm", "start"]
+# Servir a pasta dist; usar shell para expandir $PORT
+CMD ["sh", "-c", "npx serve dist -s -l ${PORT}"]
