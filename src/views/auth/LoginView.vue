@@ -49,15 +49,6 @@
             <span v-else>Entrar</span>
           </button>
         </form>
-
-        <div class="mt-6 text-center">
-          <p class="text-sm text-gray-600">
-            É aluno? 
-            <router-link to="/cadastro" class="text-green-600 hover:text-green-700 font-medium">
-              Faça seu cadastro aqui
-            </router-link>
-          </p>
-        </div>
       </div>
     </div>
   </div>
@@ -66,7 +57,6 @@
 <script setup>
 import { ref } from 'vue'
 import { useAuthStore } from '../../stores/auth'
-import { studentService } from '../../services/index.js'
 
 const authStore = useAuthStore()
 const username = ref('')

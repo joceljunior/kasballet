@@ -58,44 +58,6 @@
         </div>
       </div>
 
-      <!-- Financeiro (Master) -->
-      <div v-if="authStore.isMaster" class="space-y-3">
-        <div class="flex items-center justify-between">
-          <h2 class="text-lg font-semibold text-gray-900">Financeiro</h2>
-          <router-link to="/financeiro" class="text-sm text-green-600 hover:underline font-medium">Ver detalhes</router-link>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="card">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-sm text-gray-600">Saldo Efetivo</p>
-                <p class="text-2xl font-bold mt-1" :class="(stats.financial?.saldo ?? 0) >= 0 ? 'text-green-700' : 'text-red-700'">
-                  {{ formatMoney(stats.financial?.saldo ?? 0) }}
-                </p>
-                <p class="text-xs text-gray-500 mt-1">Só lançamentos efetivados</p>
-              </div>
-              <div class="bg-green-100 p-3 rounded-full">
-                <CurrencyDollarIcon class="h-8 w-8 text-green-600" />
-              </div>
-            </div>
-          </div>
-          <div class="card border-amber-200 bg-amber-50/50">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-sm text-gray-600">Saldo Projetado</p>
-                <p class="text-2xl font-bold mt-1" :class="(stats.financial?.saldoProjetado ?? 0) >= 0 ? 'text-green-700' : 'text-red-700'">
-                  {{ formatMoney(stats.financial?.saldoProjetado ?? 0) }}
-                </p>
-                <p class="text-xs text-gray-500 mt-1">Pendentes + efetivados</p>
-              </div>
-              <div class="bg-amber-100 p-3 rounded-full">
-                <BanknotesIcon class="h-8 w-8 text-amber-600" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- Teacher Dashboard -->
       <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="card">
@@ -136,40 +98,40 @@
         <div class="bg-amber-50 border border-amber-200 rounded-xl p-4">
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             <div
-              v-for="student in unpaidStudents"
-              :key="student.id"
+              v-for="item in unpaidStudents"
+              :key="item.student.id"
               class="bg-white rounded-lg border border-amber-100 p-3 flex items-center gap-3 hover:shadow-md transition-shadow"
             >
               <!-- Foto -->
               <div class="w-12 h-12 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center flex-shrink-0">
-                <img v-if="student.get('photo')" :src="student.get('photo').url()" alt="" class="w-full h-full object-cover" />
+                <img v-if="item.student.get('photo')" :src="item.student.get('photo').url()" alt="" class="w-full h-full object-cover" />
                 <UserCircleIcon v-else class="w-8 h-8 text-gray-400" />
               </div>
               
               <!-- Info -->
               <div class="flex-1 min-w-0">
-                <router-link :to="`/alunos/${student.id}`" class="font-medium text-gray-900 hover:text-green-600 truncate block">
-                  {{ student.get('name') }}
+                <router-link :to="`/alunos/${item.student.id}`" class="font-medium text-gray-900 hover:text-green-600 truncate block">
+                  {{ item.student.get('name') }}
                 </router-link>
-                <div class="flex items-center gap-2 mt-1">
-                  <!-- Tipo de Plano -->
-                  <span 
-                    :class="getTipoPlanoClass(student.get('tipoPlano'))"
+                        <div class="flex items-center gap-2 mt-1">
+                  <!-- Tipo de pendência -->
+                  <span
+                    :class="getPendencyClass(item.pendencyType)"
                     class="text-xs px-2 py-0.5 rounded-full font-medium"
                   >
-                    {{ formatTipoPlano(student.get('tipoPlano')) }}
+                    {{ getPendencyLabel(item.pendencyType) }}
                   </span>
                   <!-- Valor -->
-                  <span v-if="student.get('valorMensalidade')" class="text-xs text-gray-500">
-                    R$ {{ formatMoney(student.get('valorMensalidade')) }}
+                  <span v-if="item.student.get('valorMensalidade')" class="text-xs text-gray-500">
+                    R$ {{ formatMoney(item.student.get('valorMensalidade')) }}
                   </span>
                 </div>
               </div>
               
               <!-- WhatsApp/Telefone -->
               <a
-                v-if="student.get('telephone')"
-                :href="`https://wa.me/55${student.get('telephone').replace(/\D/g, '')}`"
+                v-if="item.student.get('telephone')"
+                :href="`https://wa.me/55${item.student.get('telephone').replace(/\D/g, '')}`"
                 target="_blank"
                 class="p-2 text-green-600 hover:bg-green-50 rounded-full transition-colors"
                 title="Enviar WhatsApp"
@@ -282,7 +244,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useAuthStore } from '../../stores/auth'
-import { studentService, crewService, userRepository, financialEntryService } from '../../services/index.js'
+import { studentService, crewService, userRepository } from '../../services/index.js'
 import {
   UserGroupIcon,
   AcademicCapIcon,
@@ -290,8 +252,6 @@ import {
   ClockIcon,
   ClipboardDocumentListIcon,
   UserPlusIcon,
-  CurrencyDollarIcon,
-  BanknotesIcon,
   ExclamationTriangleIcon,
   UserCircleIcon
 } from '@heroicons/vue/24/outline'
@@ -303,8 +263,7 @@ const stats = ref({
   totalTeachers: 0,
   pendingStudents: 0,
   myCrews: 0,
-  todayRegisters: 0,
-  financial: null
+  todayRegisters: 0
 })
 const unpaidStudents = ref([])
 const expiringContracts = ref([])
@@ -353,16 +312,33 @@ function getTipoPlanoClass(tipo) {
   return classes[normalized] || 'bg-gray-100 text-gray-800'
 }
 
+function getPendencyLabel(pendencyType) {
+  const labels = {
+    mensalidade_em_atraso: 'Mensalidade em atraso',
+    semestral_pendente: 'Pag. Semestral pendente',
+    anual_pendente: 'Pag. Anual pendente'
+  }
+  return labels[pendencyType] || 'Pendente'
+}
+
+function getPendencyClass(pendencyType) {
+  const classes = {
+    mensalidade_em_atraso: 'bg-red-100 text-red-800',
+    semestral_pendente: 'bg-purple-100 text-purple-800',
+    anual_pendente: 'bg-amber-100 text-amber-800'
+  }
+  return classes[pendencyType] || 'bg-amber-100 text-amber-800'
+}
+
 onMounted(async () => {
   try {
     if (authStore.isMaster) {
       // Load master stats - usando contagens reais do banco + financeiro
-      const [totalStudents, totalCrews, teachers, pendingStudents, financial, unpaid, expiring] = await Promise.all([
+      const [totalStudents, totalCrews, teachers, pendingStudents, unpaid, expiring] = await Promise.all([
         studentService.countActiveStudents(),
         crewService.countActiveCrews(),
         userRepository.findByRole('Professora', 1000, 0),
         studentService.countPendingStudents(),
-        financialEntryService.getTotals({}).catch(() => ({ saldo: 0, saldoProjetado: 0 })),
         studentService.getStudentsWithoutPaymentThisMonth(),
         studentService.getStudentsWithExpiringContracts()
       ])
@@ -371,8 +347,7 @@ onMounted(async () => {
         totalStudents,
         totalCrews,
         totalTeachers: teachers.length,
-        pendingStudents,
-        financial
+        pendingStudents
       }
       
       unpaidStudents.value = unpaid

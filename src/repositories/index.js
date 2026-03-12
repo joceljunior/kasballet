@@ -470,7 +470,7 @@ export class FinancialEntryRepository extends BaseRepository {
   }
 
   /**
-   * Soma dos valores por type. filters: dateFrom, dateTo, subtype, studentId, teacherId.
+   * Soma dos valores por type. filters: dateFrom, dateTo, dateReferenceFrom, dateReferenceTo, subtype, studentId, teacherId.
    * effectiveOnly: true = só status 'efetivado' ou vazio (saldo efetivo); false/omitido = todos (saldo projetado).
    */
   async sumByType(type, filters = {}) {
@@ -487,6 +487,14 @@ export class FinancialEntryRepository extends BaseRepository {
     if (rest.dateTo != null) {
       const d = rest.dateTo instanceof Date ? rest.dateTo : new Date(rest.dateTo)
       if (!isNaN(d.getTime())) query.lessThanOrEqualTo('date', d)
+    }
+    if (rest.dateReferenceFrom != null) {
+      const d = rest.dateReferenceFrom instanceof Date ? rest.dateReferenceFrom : new Date(rest.dateReferenceFrom)
+      if (!isNaN(d.getTime())) query.greaterThanOrEqualTo('dateReference', d)
+    }
+    if (rest.dateReferenceTo != null) {
+      const d = rest.dateReferenceTo instanceof Date ? rest.dateReferenceTo : new Date(rest.dateReferenceTo)
+      if (!isNaN(d.getTime())) query.lessThanOrEqualTo('dateReference', d)
     }
     const list = await query.limit(10000).find()
     const toSum = effectiveOnly === true

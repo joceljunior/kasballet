@@ -182,7 +182,12 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore()
-  
+
+  // Restaurar sessão do Parse (cache) antes de exigir login
+  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
+    authStore.checkAuth()
+  }
+
   // Check if route requires auth
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     next({ name: 'login' })

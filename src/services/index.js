@@ -369,20 +369,26 @@ export class StudentService {
   }
 
   /**
-   * Busca alunos ativos que NÃO pagaram:
-   * - Mensal/MensalRecorrente: mensalidade do mês anterior
-   * - Semestral: pagamento_semestral nos últimos 6 meses
-   * - Anual: pagamento_anual nos últimos 12 meses
+   * Reactivate student (reativa aluna inativada)
+   */
+  async reactivateStudent(id) {
+    return this.repository.update(id, { active: true, inactive: false })
+  }
+
+  /**
+   * Busca alunos ativos que NÃO pagaram (para tela de mensalidades pendentes).
+   * Retorna { student, pendencyType }:
+   * - Mensal/MensalRecorrente: sem mensalidade do mês anterior → mensalidade_em_atraso
+   * - Semestral: sem pagamento_semestral nos últimos 6 meses → semestral_pendente (ex: pagou em jan, vence jul; se não pagar ago, em set aparece)
+   * - Anual: sem pagamento_anual nos últimos 12 meses → anual_pendente
    */
   async getStudentsWithoutPaymentThisMonth() {
     try {
       const now = new Date()
       
-      // Buscar todos os alunos ativos
       const activeStudents = await this.repository.findActive(10000, 0, { active: true })
       if (!activeStudents.length) return []
 
-      // Separar alunos por tipo de plano
       const mensalStudents = activeStudents.filter(s => 
         s.get('tipoPlano') === 'Mensal' || s.get('tipoPlano') === 'MensalRecorrente'
       )
@@ -391,7 +397,7 @@ export class StudentService {
 
       const unpaidStudents = []
 
-      // 1. MENSAL/MENSAL RECORRENTE: verificar mensalidade do mês anterior
+      // 1. MENSAL/MENSAL RECORRENTE: não pagou mês anterior → mensalidade em atraso
       if (mensalStudents.length > 0) {
         const previousMonth = now.getMonth() === 0 ? 11 : now.getMonth() - 1
         const previousYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear()
@@ -409,12 +415,12 @@ export class StudentService {
         
         mensalStudents.forEach(s => {
           if (!paidMensalIds.has(s.id)) {
-            unpaidStudents.push(s)
+            unpaidStudents.push({ student: s, pendencyType: 'mensalidade_em_atraso' })
           }
         })
       }
 
-      // 2. SEMESTRAL: verificar se tem pagamento_semestral nos últimos 6 meses
+      // 2. SEMESTRAL: mostrar só se não tiver lançamento nos últimos 6 meses (ex: pagou jan, vence jul; sem pagar ago → em set aparece)
       if (semestralStudents.length > 0) {
         const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 6, 1)
         
@@ -429,12 +435,12 @@ export class StudentService {
         
         semestralStudents.forEach(s => {
           if (!paidSemestralIds.has(s.id)) {
-            unpaidStudents.push(s)
+            unpaidStudents.push({ student: s, pendencyType: 'semestral_pendente' })
           }
         })
       }
 
-      // 3. ANUAL: verificar se tem pagamento_anual nos últimos 12 meses
+      // 3. ANUAL: mostrar só se não tiver lançamento nos últimos 12 meses
       if (anualStudents.length > 0) {
         const oneYearAgo = new Date(now.getFullYear() - 1, now.getMonth(), 1)
         
@@ -449,7 +455,7 @@ export class StudentService {
         
         anualStudents.forEach(s => {
           if (!paidAnualIds.has(s.id)) {
-            unpaidStudents.push(s)
+            unpaidStudents.push({ student: s, pendencyType: 'anual_pendente' })
           }
         })
       }
@@ -674,7 +680,16 @@ export class FinancialEntryService {
 
   async getEntries(page = 0, pageSize = 100, filters = {}) {
     const skip = page * pageSize
-    return this.repository.findEntries(pageSize, skip, filters)
+    const { monthYear, ...rest } = filters
+    const f = { ...rest }
+    if (monthYear && monthYear !== 'all') {
+      const [y, m] = monthYear.split('-').map(Number)
+      if (y && m) {
+        f.dateReferenceFrom = new Date(y, m - 1, 1)
+        f.dateReferenceTo = new Date(y, m, 0, 23, 59, 59, 999)
+      }
+    }
+    return this.repository.findEntries(pageSize, skip, f)
   }
 
   async getEntryById(id) {
@@ -747,15 +762,27 @@ export class FinancialEntryService {
 
   /**
    * Totais: efetivo (só efetivados) e projetado (todos). status e type não afetam a soma (são da listagem).
+   * filters.monthYear = 'YYYY-MM' para filtrar por mês de referência; omitir ou 'all' = todos os lançamentos.
    * { totalEntradas, totalSaidas, saldo, totalEntradasProjetado, totalSaidasProjetado, saldoProjetado }
    */
   async getTotals(filters = {}) {
-    const { status, type, ...f } = filters
+    const { status, type, monthYear, ...f } = filters
+    let dateRef = {}
+    if (monthYear && monthYear !== 'all') {
+      const [y, m] = monthYear.split('-').map(Number)
+      if (y && m) {
+        dateRef = {
+          dateReferenceFrom: new Date(y, m - 1, 1),
+          dateReferenceTo: new Date(y, m, 0, 23, 59, 59, 999)
+        }
+      }
+    }
+    const base = { ...f, ...dateRef }
     const [totalEntradas, totalSaidas, totalEntradasProjetado, totalSaidasProjetado] = await Promise.all([
-      this.repository.sumByType('entrada', { ...f, effectiveOnly: true }),
-      this.repository.sumByType('saida', { ...f, effectiveOnly: true }),
-      this.repository.sumByType('entrada', f),
-      this.repository.sumByType('saida', f)
+      this.repository.sumByType('entrada', { ...base, effectiveOnly: true }),
+      this.repository.sumByType('saida', { ...base, effectiveOnly: true }),
+      this.repository.sumByType('entrada', base),
+      this.repository.sumByType('saida', base)
     ])
     return {
       totalEntradas,

@@ -16,10 +16,10 @@
               <div class="flex flex-wrap items-center gap-3 mb-2">
                 <h1 class="text-2xl font-bold text-gray-900">{{ student.get('name') }}</h1>
                 <span
-                  :class="student.get('active') ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'"
+                  :class="statusBadgeClass(student)"
                   class="px-3 py-1 text-xs font-medium rounded-full"
                 >
-                  {{ student.get('active') ? 'Ativa' : 'Pendente' }}
+                  {{ statusLabel(student) }}
                 </span>
               </div>
               <p class="text-gray-600">Cadastrada em {{ formatDate(student.get('dateRegistry') || student.createdAt) }}</p>
@@ -28,8 +28,14 @@
               <router-link :to="`/alunos/${student.id}/edit`" class="btn-secondary">
                 Editar
               </router-link>
-              <button @click="handleApprove" v-if="!student.get('active')" class="btn-primary">
+              <button @click="handleApprove" v-if="isPending(student)" class="btn-primary">
                 Aprovar
+              </button>
+              <button @click="handleInactivate" v-if="isActive(student)" class="btn-secondary">
+                Inativar
+              </button>
+              <button @click="handleReactivate" v-if="isInactive(student)" class="btn-primary">
+                Reativar
               </button>
             </div>
           </div>
@@ -237,10 +243,10 @@
               <dt class="text-sm font-medium text-gray-500">Status</dt>
               <dd class="mt-1">
                 <span
-                  :class="student.get('active') ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'"
+                  :class="statusBadgeClass(student)"
                   class="px-2 py-1 text-xs font-medium rounded-full"
                 >
-                  {{ student.get('active') ? 'Ativa' : 'Pendente' }}
+                  {{ statusLabel(student) }}
                 </span>
               </dd>
             </div>
@@ -351,12 +357,58 @@ function getPhotoUrl(student) {
   return photo?.url?.() || null
 }
 
+function isPending(s) {
+  return s && !s.get('active') && !s.get('inactive')
+}
+
+function isActive(s) {
+  return s && s.get('active') && !s.get('inactive')
+}
+
+function isInactive(s) {
+  return s && s.get('inactive')
+}
+
+function statusLabel(s) {
+  if (!s) return ''
+  if (s.get('inactive')) return 'Inativa'
+  if (s.get('active')) return 'Ativa'
+  return 'Pendente'
+}
+
+function statusBadgeClass(s) {
+  if (!s) return ''
+  if (s.get('inactive')) return 'bg-gray-100 text-gray-800'
+  if (s.get('active')) return 'bg-green-100 text-green-800'
+  return 'bg-yellow-100 text-yellow-800'
+}
+
 async function handleApprove() {
   try {
     await studentService.approveStudent(student.value.id)
     student.value.set('active', true)
   } catch (error) {
     console.error('Error approving student:', error)
+  }
+}
+
+async function handleInactivate() {
+  if (!confirm('Deseja realmente inativar esta aluna? Ela não aparecerá nas listas de ativas.')) return
+  try {
+    await studentService.inactivateStudent(student.value.id)
+    router.push('/alunos')
+  } catch (error) {
+    console.error('Error inactivating student:', error)
+  }
+}
+
+async function handleReactivate() {
+  if (!confirm('Deseja realmente reativar esta aluna? Ela voltará a aparecer nas listas de ativas.')) return
+  try {
+    await studentService.reactivateStudent(student.value.id)
+    router.push('/alunos')
+  } catch (error) {
+    console.error('Error reactivating student:', error)
   }
 }
 </script>

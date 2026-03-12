@@ -61,6 +61,50 @@
       </div>
     </div>
 
+    <!-- Saldo Efetivo e Projetado (respeitam o filtro de data) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="card">
+        <h2 class="text-base font-semibold text-gray-900 mb-2">Saldo efetivo</h2>
+        <p class="text-xs text-gray-500 mb-3">Apenas lançamentos efetivados no período filtrado.</p>
+        <div class="grid grid-cols-3 gap-2 text-center">
+          <div>
+            <p class="text-xs text-gray-500">Entradas</p>
+            <p class="text-lg font-bold text-green-700">{{ formatMoney(financialStore.totals.totalEntradas) }}</p>
+          </div>
+          <div>
+            <p class="text-xs text-gray-500">Saídas</p>
+            <p class="text-lg font-bold text-red-700">{{ formatMoney(financialStore.totals.totalSaidas) }}</p>
+          </div>
+          <div>
+            <p class="text-xs text-gray-500">Saldo</p>
+            <p class="text-lg font-bold" :class="financialStore.totals.saldo >= 0 ? 'text-green-700' : 'text-red-700'">
+              {{ formatMoney(financialStore.totals.saldo) }}
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="card border-amber-200 bg-amber-50/50">
+        <h2 class="text-base font-semibold text-gray-900 mb-2">Saldo projetado</h2>
+        <p class="text-xs text-gray-500 mb-3">Todos os lançamentos (pendentes + efetivados) no período filtrado.</p>
+        <div class="grid grid-cols-3 gap-2 text-center">
+          <div>
+            <p class="text-xs text-gray-600">Entradas (proj.)</p>
+            <p class="text-lg font-bold text-green-700">{{ formatMoney(financialStore.totals.totalEntradasProjetado) }}</p>
+          </div>
+          <div>
+            <p class="text-xs text-gray-600">Saídas (proj.)</p>
+            <p class="text-lg font-bold text-red-700">{{ formatMoney(financialStore.totals.totalSaidasProjetado) }}</p>
+          </div>
+          <div>
+            <p class="text-xs text-gray-600">Saldo (proj.)</p>
+            <p class="text-lg font-bold" :class="financialStore.totals.saldoProjetado >= 0 ? 'text-green-700' : 'text-red-700'">
+              {{ formatMoney(financialStore.totals.saldoProjetado) }}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div v-if="financialStore.loading && financialStore.entries.length === 0" class="card text-center py-12">
       <p class="text-gray-600">Carregando...</p>
     </div>

@@ -77,8 +77,8 @@
         </div>
       </div>
 
-      <!-- Mensalidade, Rematrícula, Taxa de Participação, Figurino: obrigatório Aluna (popup com filtro) -->
-      <div v-if="form.type === 'entrada' && ['mensalidade', 'rematricula', 'taxa_participacao', 'figurino'].includes(form.subtype)">
+      <!-- Mensalidade, Pag. Semestral, Pag. Anual, Rematrícula, Taxa, Figurino: obrigatório Aluna (uma linha por aluna) -->
+      <div v-if="form.type === 'entrada' && ['mensalidade', 'pagamento_semestral', 'pagamento_anual', 'rematricula', 'taxa_participacao', 'figurino'].includes(form.subtype)">
         <label class="block text-sm font-medium text-gray-700 mb-2">Aluna *</label>
         <div
           class="input md:max-w-md flex items-center justify-between gap-2 cursor-pointer"
