@@ -209,9 +209,11 @@ import { useStudentStore } from '../../stores/student'
 import InfiniteScroll from '../../components/common/InfiniteScroll.vue'
 import { UserGroupIcon, Squares2X2Icon, ListBulletIcon, UserCircleIcon, LinkIcon, VideoCameraSlashIcon } from '@heroicons/vue/24/outline'
 
+defineOptions({ name: 'StudentListView' })
+
 const studentStore = useStudentStore()
 const searchQuery = ref('')
-const activeFilter = ref('')
+const activeFilter = ref('true')
 const viewMode = ref('grid') // 'grid' | 'list'
 const copiedId = ref(null)
 
@@ -229,7 +231,7 @@ async function copyEditLink(studentId) {
 }
 
 onMounted(async () => {
-  await studentStore.loadStudents(true)
+  await handleFilter()
 })
 
 function formatBirthday(val) {

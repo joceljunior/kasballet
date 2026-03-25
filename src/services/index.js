@@ -953,6 +953,13 @@ export class TeacherService {
     }
     return this.getTeacherById(userId)
   }
+
+  /**
+   * Exclui _User Professora (Master). Remove teacherId de todas as Crew.
+   */
+  async deleteTeacher(userId) {
+    await Parse.Cloud.run('deleteTeacher', { userId })
+  }
 }
 
 // Export service instances

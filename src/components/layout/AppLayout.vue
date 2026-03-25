@@ -98,7 +98,11 @@
     <div class="md:pl-64">
       <main class="py-6">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <router-view />
+          <router-view v-slot="{ Component }">
+            <keep-alive include="StudentListView">
+              <component :is="Component" />
+            </keep-alive>
+          </router-view>
         </div>
       </main>
 

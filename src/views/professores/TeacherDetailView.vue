@@ -18,13 +18,22 @@
           </div>
           <p class="text-gray-600 mt-1">{{ teacher.get('email') || '—' }}</p>
         </div>
-        <router-link
-          v-if="authStore.isMaster"
-          :to="`/professores/${teacher.id}/edit`"
-          class="btn-secondary mt-4 md:mt-0"
-        >
-          Editar
-        </router-link>
+        <div v-if="authStore.isMaster" class="flex flex-wrap gap-3 mt-4 md:mt-0">
+          <router-link
+            :to="`/professores/${teacher.id}/edit`"
+            class="btn-secondary"
+          >
+            Editar
+          </router-link>
+          <button
+            type="button"
+            class="btn-secondary text-red-600 border-red-200 hover:bg-red-50 disabled:opacity-50"
+            :disabled="deleting"
+            @click="confirmDelete"
+          >
+            {{ deleting ? 'Excluindo...' : 'Excluir professora' }}
+          </button>
+        </div>
       </div>
 
       <div class="card">
@@ -97,6 +106,7 @@ const paymentHistory = ref([])
 const paymentLoading = ref(false)
 const loading = ref(true)
 const crewsLoading = ref(false)
+const deleting = ref(false)
 
 function formatDate(d) {
   if (!d) return '—'
@@ -107,6 +117,23 @@ function formatDate(d) {
 function formatMoney(v) {
   const n = Number(v)
   return isNaN(n) ? '0,00' : n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+async function confirmDelete() {
+  const name = teacher.value?.get('username') || 'esta professora'
+  if (!window.confirm(`Excluir ${name} permanentemente? As turmas ficarão sem professora atribuída. Esta ação não pode ser desfeita.`)) {
+    return
+  }
+  deleting.value = true
+  try {
+    await teacherStore.deleteTeacher(teacher.value.id)
+    router.push('/professores')
+  } catch (err) {
+    console.error(err)
+    alert(err?.message || 'Não foi possível excluir.')
+  } finally {
+    deleting.value = false
+  }
 }
 
 onMounted(async () => {

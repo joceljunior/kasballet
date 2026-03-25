@@ -68,6 +68,21 @@ export const useTeacherStore = defineStore('teacher', () => {
     }
   }
 
+  async function deleteTeacher(userId) {
+    loading.value = true
+    error.value = null
+
+    try {
+      await teacherService.deleteTeacher(userId)
+      teachers.value = teachers.value.filter((x) => x.id !== userId)
+    } catch (err) {
+      error.value = err.message || 'Erro ao excluir professora'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     teachers,
     loading,
@@ -75,6 +90,7 @@ export const useTeacherStore = defineStore('teacher', () => {
     loadTeachers,
     getTeacherById,
     createTeacher,
-    updateTeacher
+    updateTeacher,
+    deleteTeacher
   }
 })
