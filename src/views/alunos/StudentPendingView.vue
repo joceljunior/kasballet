@@ -24,7 +24,7 @@
             </div>
             <div class="flex-1">
               <h3 class="text-xl font-semibold text-gray-900">{{ student.get('name') }}</h3>
-              <p class="text-sm text-gray-500 mt-1">Cadastrado em: {{ formatDate(student.get('dateRegistry') || student.createdAt) }}</p>
+              <p class="text-sm text-gray-500 mt-1">Cadastrado em: {{ formatDateBR(student.get('dateRegistry') || student.createdAt) || '-' }}</p>
             </div>
             <div class="flex gap-2">
               <button
@@ -88,7 +88,7 @@
                 </div>
                 <div>
                   <p class="text-xs text-gray-500">Data de Nascimento</p>
-                  <p class="text-sm text-gray-900">{{ formatDate(student.get('birthday')) }}</p>
+                  <p class="text-sm text-gray-900">{{ formatDateBR(student.get('birthday')) || '-' }}</p>
                 </div>
                 <div>
                   <p class="text-xs text-gray-500">Nacionalidade</p>
@@ -210,6 +210,7 @@
 import { ref, onMounted } from 'vue'
 import { useStudentStore } from '../../stores/student'
 import { studentService } from '../../services/index.js'
+import { formatDateBR } from '../../utils/date.js'
 import { UserCircleIcon } from '@heroicons/vue/24/outline'
 
 const studentStore = useStudentStore()
@@ -240,13 +241,6 @@ function toggleExpand(studentId) {
   } else {
     expandedStudents.value.push(studentId)
   }
-}
-
-function formatDate(date) {
-  if (!date) return '-'
-  const d = date instanceof Date ? date : new Date(date)
-  if (isNaN(d.getTime())) return '-'
-  return d.toLocaleDateString('pt-BR')
 }
 
 function formatTipoPlano(tipo) {

@@ -130,8 +130,8 @@
           </thead>
           <tbody class="divide-y divide-gray-200">
             <tr v-for="e in financialStore.entries" :key="e.id" class="hover:bg-gray-50">
-              <td class="px-4 py-3 text-sm text-gray-900">{{ formatDate(e.get('date')) || '-' }}</td>
-              <td class="px-4 py-3 text-sm text-gray-600">{{ formatDateShort(e.get('dateReference')) }}</td>
+              <td class="px-4 py-3 text-sm text-gray-900">{{ formatDateBR(e.get('date')) || '-' }}</td>
+              <td class="px-4 py-3 text-sm text-gray-600">{{ formatDateBR(e.get('dateReference')) || '-' }}</td>
               <td class="px-4 py-3 text-sm">
                 <span :class="e.get('type') === 'entrada' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'" class="px-2 py-0.5 text-xs font-medium rounded-full">
                   {{ subtypeLabel(e.get('type'), e.get('subtype')) }}
@@ -172,6 +172,7 @@
 import { ref, onMounted, watch } from 'vue'
 import { useFinancialStore } from '../../stores/financial'
 import { studentService, userRepository } from '../../services/index.js'
+import { formatDateBR } from '../../utils/date.js'
 import { CurrencyDollarIcon } from '@heroicons/vue/24/outline'
 
 const SUBTYPE_LABELS = {
@@ -197,19 +198,6 @@ const filterDateTo = ref('')
 const studentMap = ref({})
 const teacherMap = ref({})
 const toDelete = ref(null)
-
-function formatDate(d) {
-  if (!d) return '—'
-  const x = d instanceof Date ? d : new Date(d)
-  return isNaN(x.getTime()) ? '—' : x.toLocaleDateString('pt-BR')
-}
-
-function formatDateShort(d) {
-  if (!d) return '-'
-  const date = d instanceof Date ? d : new Date(d)
-  if (isNaN(date.getTime())) return '-'
-  return date.toLocaleDateString('pt-BR')
-}
 
 function formatMoney(v) {
   const n = Number(v)

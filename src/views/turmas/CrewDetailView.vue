@@ -84,7 +84,7 @@
                 <div class="flex-1 min-w-0">
                   <h3 class="font-semibold text-gray-900 truncate">{{ student.get('name') }}</h3>
                   <p class="text-sm text-gray-600">
-                    {{ formatDate(student.get('birthday')) }}
+                    {{ formatDateBR(student.get('birthday')) || 'Não informado' }}
                   </p>
                 </div>
               </div>
@@ -101,6 +101,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useCrewStore } from '../../stores/crew'
 import { useAuthStore } from '../../stores/auth'
 import { crewService, teacherService } from '../../services/index.js'
+import { formatDateBR } from '../../utils/date.js'
 import { UserCircleIcon } from '@heroicons/vue/24/outline'
 
 const route = useRoute()
@@ -112,13 +113,6 @@ const teacher = ref(null)
 const students = ref([])
 const loading = ref(true)
 const studentsLoading = ref(false)
-
-function formatDate(date) {
-  if (!date) return 'Não informado'
-  const d = date instanceof Date ? date : new Date(date)
-  if (isNaN(d.getTime())) return 'Não informado'
-  return d.toLocaleDateString('pt-BR')
-}
 
 function getPhotoUrl(student) {
   const photo = student.get('photo')

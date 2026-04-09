@@ -22,7 +22,7 @@
                   {{ statusLabel(student) }}
                 </span>
               </div>
-              <p class="text-gray-600">Cadastrada em {{ formatDate(student.get('dateRegistry') || student.createdAt) }}</p>
+              <p class="text-gray-600">Cadastrada em {{ formatDateBR(student.get('dateRegistry') || student.createdAt) || '—' }}</p>
             </div>
             <div class="flex gap-2">
               <router-link :to="`/alunos/${student.id}/edit`" class="btn-secondary">
@@ -54,7 +54,7 @@
             </div>
             <div>
               <dt class="text-sm font-medium text-gray-500">Data de Nascimento</dt>
-              <dd class="mt-1 text-sm text-gray-900">{{ formatDate(student.get('birthday')) }}</dd>
+              <dd class="mt-1 text-sm text-gray-900">{{ formatDateBR(student.get('birthday')) || '—' }}</dd>
             </div>
             <div>
               <dt class="text-sm font-medium text-gray-500">Nacionalidade</dt>
@@ -210,8 +210,8 @@
               </thead>
               <tbody class="divide-y divide-gray-200">
                 <tr v-for="e in paymentHistory" :key="e.id">
-                  <td class="px-3 py-2 text-sm text-gray-900">{{ formatDate(e.get('date')) }}</td>
-                  <td class="px-3 py-2 text-sm text-gray-600">{{ formatDateShort(e.get('dateReference')) }}</td>
+                  <td class="px-3 py-2 text-sm text-gray-900">{{ formatDateBR(e.get('date')) || '—' }}</td>
+                  <td class="px-3 py-2 text-sm text-gray-600">{{ formatDateBR(e.get('dateReference')) || '-' }}</td>
                   <td class="px-3 py-2 text-sm">
                     <span :class="getSubtypeClass(e.get('subtype'))" class="px-2 py-0.5 rounded-full text-xs font-medium">
                       {{ formatSubtype(e.get('subtype')) }}
@@ -237,7 +237,7 @@
           <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
               <dt class="text-sm font-medium text-gray-500">Data de Registro</dt>
-              <dd class="mt-1 text-sm text-gray-900">{{ formatDate(student.get('dateRegistry') || student.createdAt) }}</dd>
+              <dd class="mt-1 text-sm text-gray-900">{{ formatDateBR(student.get('dateRegistry') || student.createdAt) || '—' }}</dd>
             </div>
             <div>
               <dt class="text-sm font-medium text-gray-500">Status</dt>
@@ -265,7 +265,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
 import { studentService, financialEntryService } from '../../services/index.js'
-import { formatDate } from '../../utils/pagination.js'
+import { formatDateBR } from '../../utils/date.js'
 import { UserCircleIcon } from '@heroicons/vue/24/outline'
 
 const route = useRoute()
@@ -280,13 +280,6 @@ const loading = ref(true)
 function formatMoney(v) {
   const n = Number(v)
   return isNaN(n) ? '0,00' : n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-}
-
-function formatDateShort(d) {
-  if (!d) return '-'
-  const date = d instanceof Date ? d : new Date(d)
-  if (isNaN(date.getTime())) return '-'
-  return date.toLocaleDateString('pt-BR')
 }
 
 function formatSubtype(subtype) {

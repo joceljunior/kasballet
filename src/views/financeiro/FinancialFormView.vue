@@ -179,6 +179,7 @@ import { ref, onMounted, computed, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useFinancialStore } from '../../stores/financial'
 import { studentService, teacherService } from '../../services/index.js'
+import { toYYYYMMDDLocal } from '../../utils/date.js'
 import { XMarkIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
 
 const route = useRoute()
@@ -211,8 +212,8 @@ const form = ref({
   type: 'entrada',
   subtype: '',
   status: 'efetivado',
-  date: new Date().toISOString().slice(0, 10),
-  dateReference: new Date().toISOString().slice(0, 10), // Formato YYYY-MM-DD
+  date: toYYYYMMDDLocal(new Date()),
+  dateReference: toYYYYMMDDLocal(new Date()),
   value: '',
   description: '',
   studentId: '',
@@ -220,9 +221,7 @@ const form = ref({
 })
 
 function getDateInputValue(d) {
-  if (!d) return ''
-  const x = d instanceof Date ? d : new Date(d)
-  return isNaN(x.getTime()) ? '' : x.toISOString().slice(0, 10)
+  return toYYYYMMDDLocal(d)
 }
 
 

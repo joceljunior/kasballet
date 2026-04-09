@@ -244,6 +244,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { studentService } from '../../services/index.js'
+import { parseDateForStorage, toYYYYMMDDLocal } from '../../utils/date.js'
 import { UserCircleIcon, CameraIcon } from '@heroicons/vue/24/outline'
 
 const route = useRoute()
@@ -277,16 +278,6 @@ const form = ref({
   useImage: true
 })
 
-function formatDateForInput(date) {
-  if (!date) return ''
-  const d = date instanceof Date ? date : new Date(date)
-  if (isNaN(d.getTime())) return ''
-  const year = d.getFullYear()
-  const month = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
-
 onMounted(async () => {
   try {
     const studentId = route.params.id
@@ -311,7 +302,7 @@ onMounted(async () => {
     const allergyValue = s.get('allergy') || ''
     form.value = {
       name: s.get('name') || '',
-      birthday: formatDateForInput(s.get('birthday')),
+      birthday: toYYYYMMDDLocal(s.get('birthday')),
       nationality: s.get('nationality') || '',
       schoolName: s.get('schoolName') || '',
       schoolGrade: s.get('schoolGrade') || '',
@@ -353,7 +344,7 @@ async function handleSubmit() {
   try {
     const payload = {
       name: form.value.name,
-      birthday: form.value.birthday ? new Date(form.value.birthday) : null,
+      birthday: form.value.birthday ? parseDateForStorage(form.value.birthday) : null,
       nationality: form.value.nationality,
       schoolName: form.value.schoolName,
       schoolGrade: form.value.schoolGrade,

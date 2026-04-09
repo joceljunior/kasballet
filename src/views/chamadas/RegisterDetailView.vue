@@ -8,7 +8,7 @@
       <div class="flex flex-col md:flex-row md:items-center md:justify-between">
         <div>
           <h1 class="text-2xl font-bold text-gray-900">Chamada – {{ getCrewName(register.get('crewId')) }}</h1>
-          <p class="text-gray-600 mt-1">{{ formatDate(register.get('dateregister')) }}</p>
+          <p class="text-gray-600 mt-1">{{ formatDateBR(register.get('dateregister')) || '—' }}</p>
         </div>
         <div class="flex gap-2 mt-4 md:mt-0">
           <router-link :to="`/chamadas/${register.id}/edit`" class="btn-primary">Editar</router-link>
@@ -25,7 +25,7 @@
           </div>
           <div>
             <dt class="text-sm font-medium text-gray-500">Data</dt>
-            <dd class="mt-1 text-sm text-gray-900">{{ formatDate(register.get('dateregister')) }}</dd>
+            <dd class="mt-1 text-sm text-gray-900">{{ formatDateBR(register.get('dateregister')) || '—' }}</dd>
           </div>
           <div>
             <dt class="text-sm font-medium text-gray-500">Quem fez a chamada</dt>
@@ -78,6 +78,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useRegisterStore } from '../../stores/register'
 import { crewService, studentService, userRepository } from '../../services/index.js'
+import { formatDateBR } from '../../utils/date.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -96,12 +97,6 @@ const rows = computed(() => {
     return { studentId: x.studentId, name, present: x.present === true }
   })
 })
-
-function formatDate(d) {
-  if (!d) return '—'
-  const x = d instanceof Date ? d : new Date(d)
-  return isNaN(x.getTime()) ? '—' : x.toLocaleDateString('pt-BR')
-}
 
 function getCrewName(crewId) {
   if (!crewId) return '—'

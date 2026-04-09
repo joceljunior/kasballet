@@ -77,7 +77,7 @@
             </thead>
             <tbody class="divide-y divide-gray-200">
               <tr v-for="e in paymentHistory" :key="e.id">
-                <td class="px-3 py-2 text-sm text-gray-900">{{ formatDate(e.get('date')) }}</td>
+                <td class="px-3 py-2 text-sm text-gray-900">{{ formatDateBR(e.get('date')) || '—' }}</td>
                 <td class="px-3 py-2 text-sm text-right text-red-700 font-medium">{{ formatMoney(e.get('value')) }}</td>
               </tr>
             </tbody>
@@ -95,6 +95,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useTeacherStore } from '../../stores/teacher'
 import { useAuthStore } from '../../stores/auth'
 import { crewService, financialEntryService } from '../../services/index.js'
+import { formatDateBR } from '../../utils/date.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -107,12 +108,6 @@ const paymentLoading = ref(false)
 const loading = ref(true)
 const crewsLoading = ref(false)
 const deleting = ref(false)
-
-function formatDate(d) {
-  if (!d) return '—'
-  const x = d instanceof Date ? d : new Date(d)
-  return isNaN(x.getTime()) ? '—' : x.toLocaleDateString('pt-BR')
-}
 
 function formatMoney(v) {
   const n = Number(v)

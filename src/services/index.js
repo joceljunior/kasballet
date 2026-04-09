@@ -1,5 +1,6 @@
 import Parse from 'parse'
 import { studentRepository, studentCrewRepository, crewRepository, registerRepository, financialEntryRepository, paymentRepository, userRepository } from '../repositories/index.js'
+import { parseDateForStorage } from '../utils/date.js'
 
 export class StudentService {
   constructor(repository) {
@@ -59,6 +60,9 @@ export class StudentService {
       dateRegistry: rest.dateRegistry || new Date(),
       useImage: rest.useImage !== undefined ? rest.useImage : true
     }
+    if (studentData.birthday != null && typeof studentData.birthday === 'string') {
+      studentData.birthday = parseDateForStorage(studentData.birthday)
+    }
     // photo: Parse.File já vem do formulário; File do input: converter
     if (studentData.photo && typeof File !== 'undefined' && studentData.photo instanceof File) {
       studentData.photo = new Parse.File(studentData.photo.name, studentData.photo)
@@ -106,9 +110,9 @@ export class StudentService {
       delete rest.photo
     }
     
-    // Converter datas se necessário
+    // Converter datas se necessário (YYYY-MM-DD do formulário = calendário local)
     if (rest.birthday && typeof rest.birthday === 'string') {
-      rest.birthday = new Date(rest.birthday)
+      rest.birthday = parseDateForStorage(rest.birthday)
     }
     
     // Garantir tipos numéricos
@@ -644,7 +648,9 @@ export class RegisterService {
     const user = Parse.User.current()
     const registerData = {
       crewId: data.crewId,
-      dateregister: data.dateregister ? (data.dateregister instanceof Date ? data.dateregister : new Date(data.dateregister)) : new Date(),
+      dateregister: data.dateregister
+        ? (data.dateregister instanceof Date ? data.dateregister : parseDateForStorage(data.dateregister))
+        : new Date(),
       studentRegisters: Array.isArray(data.studentRegisters) ? data.studentRegisters : [],
       calledByUserId: user ? user.id : null
     }
@@ -659,7 +665,9 @@ export class RegisterService {
     const payload = {}
     if (data.crewId !== undefined) payload.crewId = data.crewId
     if (data.dateregister !== undefined) {
-      payload.dateregister = data.dateregister instanceof Date ? data.dateregister : new Date(data.dateregister)
+      payload.dateregister = data.dateregister instanceof Date
+        ? data.dateregister
+        : parseDateForStorage(data.dateregister)
     }
     if (data.studentRegisters !== undefined) payload.studentRegisters = Array.isArray(data.studentRegisters) ? data.studentRegisters : []
     return this.repository.update(id, payload)
@@ -701,9 +709,9 @@ export class FinancialEntryService {
    */
   async createEntry(data) {
     const user = Parse.User.current()
-    const date = data.date instanceof Date ? data.date : new Date(data.date)
-    const dateReference = data.dateReference 
-      ? (data.dateReference instanceof Date ? data.dateReference : new Date(data.dateReference))
+    const date = data.date instanceof Date ? data.date : parseDateForStorage(data.date)
+    const dateReference = data.dateReference
+      ? (data.dateReference instanceof Date ? data.dateReference : parseDateForStorage(data.dateReference))
       : date // Se não tiver dateReference, usar a mesma data
     
     const payload = {
@@ -725,8 +733,12 @@ export class FinancialEntryService {
     const payload = {}
     if (data.type !== undefined) payload.type = data.type
     if (data.subtype !== undefined) payload.subtype = data.subtype
-    if (data.date !== undefined) payload.date = data.date instanceof Date ? data.date : new Date(data.date)
-    if (data.dateReference !== undefined) payload.dateReference = data.dateReference instanceof Date ? data.dateReference : new Date(data.dateReference)
+    if (data.date !== undefined) payload.date = data.date instanceof Date ? data.date : parseDateForStorage(data.date)
+    if (data.dateReference !== undefined) {
+      payload.dateReference = data.dateReference instanceof Date
+        ? data.dateReference
+        : parseDateForStorage(data.dateReference)
+    }
     if (data.value !== undefined) payload.value = Number(data.value) || 0
     if (data.description !== undefined) payload.description = String(data.description)
     if (data.studentId !== undefined) payload.studentId = data.studentId || null

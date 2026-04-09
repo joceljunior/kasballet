@@ -59,7 +59,7 @@
           <tbody class="divide-y divide-gray-200">
             <tr v-for="r in registerStore.registers" :key="r.id" class="hover:bg-gray-50">
               <td class="px-4 py-3 text-sm text-gray-900">{{ getCrewName(r.get('crewId')) }}</td>
-              <td class="px-4 py-3 text-sm text-gray-900">{{ formatDate(r.get('dateregister')) }}</td>
+              <td class="px-4 py-3 text-sm text-gray-900">{{ formatDateBR(r.get('dateregister')) || '—' }}</td>
               <td class="px-4 py-3 text-sm text-gray-600">{{ getCalledBy(r.get('calledByUserId')) }}</td>
               <td class="px-4 py-3 text-sm text-right">
                 <router-link :to="`/chamadas/${r.id}`" class="text-green-600 hover:underline mr-3">Ver</router-link>
@@ -75,7 +75,7 @@
     <!-- Modal confirmar exclusão -->
     <div v-if="toDelete" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" @click.self="toDelete = null">
       <div class="bg-white rounded-lg shadow-xl max-w-sm w-full p-6">
-        <p class="text-gray-700">Excluir a chamada de <strong>{{ getCrewName(toDelete.get('crewId')) }}</strong> em {{ formatDate(toDelete.get('dateregister')) }}?</p>
+        <p class="text-gray-700">Excluir a chamada de <strong>{{ getCrewName(toDelete.get('crewId')) }}</strong> em {{ formatDateBR(toDelete.get('dateregister')) || '—' }}?</p>
         <div class="flex gap-3 mt-6">
           <button type="button" @click="doDelete" class="btn-primary flex-1">Excluir</button>
           <button type="button" @click="toDelete = null" class="btn-secondary flex-1">Cancelar</button>
@@ -90,6 +90,7 @@ import { ref, onMounted } from 'vue'
 import { useRegisterStore } from '../../stores/register'
 import { useAuthStore } from '../../stores/auth'
 import { crewService, userRepository } from '../../services/index.js'
+import { formatDateBR } from '../../utils/date.js'
 import { ClipboardDocumentListIcon } from '@heroicons/vue/24/outline'
 
 const registerStore = useRegisterStore()
@@ -101,12 +102,6 @@ const crewsForFilter = ref([])
 const crewMap = ref({})
 const calledByMap = ref({})
 const toDelete = ref(null)
-
-function formatDate(d) {
-  if (!d) return '—'
-  const x = d instanceof Date ? d : new Date(d)
-  return isNaN(x.getTime()) ? '—' : x.toLocaleDateString('pt-BR')
-}
 
 function getCrewName(crewId) {
   if (!crewId) return '—'

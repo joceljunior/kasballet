@@ -44,7 +44,7 @@
               class="rounded border-gray-300 text-green-600 focus:ring-green-500"
             />
             <span class="ml-3 text-sm font-medium text-gray-900">{{ s.get('name') }}</span>
-            <span class="ml-2 text-xs text-gray-500">{{ formatDate(s.get('birthday')) }}</span>
+            <span class="ml-2 text-xs text-gray-500">{{ formatDateBR(s.get('birthday')) || '' }}</span>
           </label>
         </div>
       </div>
@@ -67,6 +67,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useRegisterStore } from '../../stores/register'
 import { useAuthStore } from '../../stores/auth'
 import { crewService } from '../../services/index.js'
+import { formatDateBR, toYYYYMMDDLocal } from '../../utils/date.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -86,17 +87,8 @@ const form = ref({
   presents: [] // array de studentId marcados como presente
 })
 
-function formatDate(d) {
-  if (!d) return ''
-  const x = d instanceof Date ? d : new Date(d)
-  return isNaN(x.getTime()) ? '' : x.toLocaleDateString('pt-BR')
-}
-
 function getDateInputValue(d) {
-  if (!d) return ''
-  const x = d instanceof Date ? d : new Date(d)
-  if (isNaN(x.getTime())) return ''
-  return x.toISOString().slice(0, 10)
+  return toYYYYMMDDLocal(d)
 }
 
 async function onCrewChange() {

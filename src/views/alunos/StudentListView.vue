@@ -93,7 +93,7 @@
                   <h3 class="font-semibold text-gray-900 truncate">{{ student.get('name') }}</h3>
                   <VideoCameraSlashIcon v-if="!student.get('useImage')" class="w-4 h-4 text-red-400 flex-shrink-0" title="Não autorizou uso de imagem" />
                 </div>
-                <p class="text-sm text-gray-600 mt-0.5">{{ formatBirthday(student.get('birthday')) }}</p>
+                <p class="text-sm text-gray-600 mt-0.5">{{ formatDateBR(student.get('birthday')) || '—' }}</p>
                 <p class="text-sm text-pink-500">{{ getCrewNames(student) }}</p>
               </div>
             </div>
@@ -138,7 +138,7 @@
                 <VideoCameraSlashIcon v-if="!student.get('useImage')" class="w-4 h-4 text-red-400 flex-shrink-0" title="Não autorizou uso de imagem" />
               </div>
               <p class="text-sm text-gray-500">
-                {{ formatBirthday(student.get('birthday')) }} · 
+                {{ formatDateBR(student.get('birthday')) || '—' }} · 
                 <span class="text-pink-500">{{ getCrewNames(student) }}</span>
               </p>
             </div>
@@ -177,7 +177,7 @@
                   <h3 class="font-medium text-gray-900">{{ student.get('name') }}</h3>
                   <VideoCameraSlashIcon v-if="!student.get('useImage')" class="w-4 h-4 text-red-400 flex-shrink-0" title="Não autorizou uso de imagem" />
                 </div>
-                <p class="text-sm text-gray-600">{{ formatBirthday(student.get('birthday')) }}</p>
+                <p class="text-sm text-gray-600">{{ formatDateBR(student.get('birthday')) || '—' }}</p>
                 <p class="text-sm text-pink-600 font-medium">{{ getCrewNames(student) }}</p>
               </div>
             </div>
@@ -207,6 +207,7 @@
 import { ref, onMounted } from 'vue'
 import { useStudentStore } from '../../stores/student'
 import InfiniteScroll from '../../components/common/InfiniteScroll.vue'
+import { formatDateBR } from '../../utils/date.js'
 import { UserGroupIcon, Squares2X2Icon, ListBulletIcon, UserCircleIcon, LinkIcon, VideoCameraSlashIcon } from '@heroicons/vue/24/outline'
 
 defineOptions({ name: 'StudentListView' })
@@ -233,12 +234,6 @@ async function copyEditLink(studentId) {
 onMounted(async () => {
   await handleFilter()
 })
-
-function formatBirthday(val) {
-  if (!val) return '—'
-  const d = val instanceof Date ? val : new Date(val)
-  return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('pt-BR')
-}
 
 function getPhotoUrl(student) {
   const photo = student.get('photo')

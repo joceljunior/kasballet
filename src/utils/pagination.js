@@ -22,15 +22,15 @@ export function hasMorePages(currentCount, pageSize) {
   return currentCount >= pageSize
 }
 
+import { formatDateBR } from './date.js'
+
 /**
- * Format date for display
+ * Format date for display (dd/mm/aaaa, pt-BR)
  * @param {Date|string} date - Date to format
  * @returns {string} Formatted date string
  */
 export function formatDate(date) {
-  if (!date) return ''
-  const d = new Date(date)
-  return d.toLocaleDateString('pt-BR')
+  return formatDateBR(date) || ''
 }
 
 /**

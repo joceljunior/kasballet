@@ -1,5 +1,6 @@
 import Parse from 'parse'
 import { BaseRepository } from './base/BaseRepository.js'
+import { parseFilterDateFrom, parseFilterDateTo } from '../utils/date.js'
 
 export class StudentRepository extends BaseRepository {
   constructor() {
@@ -384,12 +385,12 @@ export class RegisterRepository extends BaseRepository {
       query.containedIn('crewId', filters.crewIds)
     }
     if (filters.dateFrom != null) {
-      const d = filters.dateFrom instanceof Date ? filters.dateFrom : new Date(filters.dateFrom)
-      if (!isNaN(d.getTime())) query.greaterThanOrEqualTo('dateregister', d)
+      const d = parseFilterDateFrom(filters.dateFrom)
+      if (d && !isNaN(d.getTime())) query.greaterThanOrEqualTo('dateregister', d)
     }
     if (filters.dateTo != null) {
-      const d = filters.dateTo instanceof Date ? filters.dateTo : new Date(filters.dateTo)
-      if (!isNaN(d.getTime())) query.lessThanOrEqualTo('dateregister', d)
+      const d = parseFilterDateTo(filters.dateTo)
+      if (d && !isNaN(d.getTime())) query.lessThanOrEqualTo('dateregister', d)
     }
     query.descending('dateregister')
     query.limit(limit)
@@ -430,21 +431,21 @@ export class FinancialEntryRepository extends BaseRepository {
     if (filters.teacherId) query.equalTo('teacherId', filters.teacherId)
     // Filtros por date (data do lançamento)
     if (filters.dateFrom != null) {
-      const d = filters.dateFrom instanceof Date ? filters.dateFrom : new Date(filters.dateFrom)
-      if (!isNaN(d.getTime())) query.greaterThanOrEqualTo('date', d)
+      const d = parseFilterDateFrom(filters.dateFrom)
+      if (d && !isNaN(d.getTime())) query.greaterThanOrEqualTo('date', d)
     }
     if (filters.dateTo != null) {
-      const d = filters.dateTo instanceof Date ? filters.dateTo : new Date(filters.dateTo)
-      if (!isNaN(d.getTime())) query.lessThanOrEqualTo('date', d)
+      const d = parseFilterDateTo(filters.dateTo)
+      if (d && !isNaN(d.getTime())) query.lessThanOrEqualTo('date', d)
     }
     // Filtros por dateReference (mês de referência)
     if (filters.dateReferenceFrom != null) {
-      const d = filters.dateReferenceFrom instanceof Date ? filters.dateReferenceFrom : new Date(filters.dateReferenceFrom)
-      if (!isNaN(d.getTime())) query.greaterThanOrEqualTo('dateReference', d)
+      const d = parseFilterDateFrom(filters.dateReferenceFrom)
+      if (d && !isNaN(d.getTime())) query.greaterThanOrEqualTo('dateReference', d)
     }
     if (filters.dateReferenceTo != null) {
-      const d = filters.dateReferenceTo instanceof Date ? filters.dateReferenceTo : new Date(filters.dateReferenceTo)
-      if (!isNaN(d.getTime())) query.lessThanOrEqualTo('dateReference', d)
+      const d = parseFilterDateTo(filters.dateReferenceTo)
+      if (d && !isNaN(d.getTime())) query.lessThanOrEqualTo('dateReference', d)
     }
     // Ordenar por date, com fallback para createdAt quando date é null
     query.addDescending('date')
@@ -481,20 +482,20 @@ export class FinancialEntryRepository extends BaseRepository {
     if (rest.studentId) query.equalTo('studentId', rest.studentId)
     if (rest.teacherId) query.equalTo('teacherId', rest.teacherId)
     if (rest.dateFrom != null) {
-      const d = rest.dateFrom instanceof Date ? rest.dateFrom : new Date(rest.dateFrom)
-      if (!isNaN(d.getTime())) query.greaterThanOrEqualTo('date', d)
+      const d = parseFilterDateFrom(rest.dateFrom)
+      if (d && !isNaN(d.getTime())) query.greaterThanOrEqualTo('date', d)
     }
     if (rest.dateTo != null) {
-      const d = rest.dateTo instanceof Date ? rest.dateTo : new Date(rest.dateTo)
-      if (!isNaN(d.getTime())) query.lessThanOrEqualTo('date', d)
+      const d = parseFilterDateTo(rest.dateTo)
+      if (d && !isNaN(d.getTime())) query.lessThanOrEqualTo('date', d)
     }
     if (rest.dateReferenceFrom != null) {
-      const d = rest.dateReferenceFrom instanceof Date ? rest.dateReferenceFrom : new Date(rest.dateReferenceFrom)
-      if (!isNaN(d.getTime())) query.greaterThanOrEqualTo('dateReference', d)
+      const d = parseFilterDateFrom(rest.dateReferenceFrom)
+      if (d && !isNaN(d.getTime())) query.greaterThanOrEqualTo('dateReference', d)
     }
     if (rest.dateReferenceTo != null) {
-      const d = rest.dateReferenceTo instanceof Date ? rest.dateReferenceTo : new Date(rest.dateReferenceTo)
-      if (!isNaN(d.getTime())) query.lessThanOrEqualTo('dateReference', d)
+      const d = parseFilterDateTo(rest.dateReferenceTo)
+      if (d && !isNaN(d.getTime())) query.lessThanOrEqualTo('dateReference', d)
     }
     const list = await query.limit(10000).find()
     const toSum = effectiveOnly === true

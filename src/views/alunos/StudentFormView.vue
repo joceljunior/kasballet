@@ -261,6 +261,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useStudentStore } from '../../stores/student'
 import { studentService, crewService } from '../../services/index.js'
+import { parseDateForStorage, toYYYYMMDDLocal } from '../../utils/date.js'
 import { UserCircleIcon, CameraIcon } from '@heroicons/vue/24/outline'
 
 const route = useRoute()
@@ -302,16 +303,6 @@ const form = ref({
   useImage: true
 })
 
-function formatDateForInput(date) {
-  if (!date) return ''
-  const d = date instanceof Date ? date : new Date(date)
-  if (isNaN(d.getTime())) return ''
-  const year = d.getFullYear()
-  const month = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
-
 onMounted(async () => {
   try {
     crews.value = await crewService.getCrews(0, 200)
@@ -335,7 +326,7 @@ onMounted(async () => {
         cpf: student.get('cpf') || '',
         email: student.get('email') || '',
         telephone: student.get('telephone') || '',
-        birthday: formatDateForInput(student.get('birthday')),
+        birthday: toYYYYMMDDLocal(student.get('birthday')),
         crewIds: studentCrews.map(c => c.id),
         nationality: student.get('nationality') || 'Brasileira',
         address: student.get('address') || '',
@@ -395,7 +386,7 @@ async function handleSubmit() {
     
     // Converter data de nascimento para Date se necessário
     if (payload.birthday && typeof payload.birthday === 'string') {
-      payload.birthday = new Date(payload.birthday)
+      payload.birthday = parseDateForStorage(payload.birthday)
     }
     
     // Adicionar foto se uma nova foi selecionada (enviar File nativo, o service converte)

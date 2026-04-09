@@ -284,6 +284,7 @@
 import { ref, onMounted } from 'vue'
 import { studentService, crewService } from '../../services/index.js'
 import Parse from '../../services/parse.js'
+import { parseDateForStorage } from '../../utils/date.js'
 import { UserCircleIcon, CameraIcon } from '@heroicons/vue/24/outline'
 
 const loading = ref(false)
@@ -348,8 +349,7 @@ async function handleSubmit() {
     // Preparar dados para envio
     const data = {
       ...form.value,
-      // Converter birthday de string para Date
-      birthday: form.value.birthday ? new Date(form.value.birthday) : null,
+      birthday: form.value.birthday ? parseDateForStorage(form.value.birthday) : null,
       // Campos de alergia
       allergy: form.value.hasAllergy ? form.value.allergy : ''
     }
