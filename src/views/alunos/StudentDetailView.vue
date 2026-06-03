@@ -1,8 +1,6 @@
 <template>
   <div class="space-y-6 pb-20 md:pb-6">
-      <div v-if="loading" class="card text-center py-12">
-        <p class="text-gray-600">Carregando...</p>
-      </div>
+      <AppLoading v-if="loading" card message="Carregando aluno..." />
 
       <div v-else-if="student" class="space-y-6">
         <!-- Cabeçalho com Foto e Ações -->
@@ -195,7 +193,7 @@
             Histórico Financeiro
             <span class="text-xs font-normal text-gray-500">(pagamentos efetivados)</span>
           </h2>
-          <div v-if="paymentLoading" class="text-sm text-gray-500 py-2">Carregando...</div>
+          <AppLoading v-if="paymentLoading" size="sm" inline message="Carregando pagamentos..." />
           <div v-else-if="!paymentHistory.length" class="text-sm text-gray-500 py-2">Nenhum pagamento efetivado registrado.</div>
           <div v-else class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
@@ -264,13 +262,16 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
+import { useFinancialCategoryStore } from '../../stores/financialCategory'
 import { studentService, financialEntryService } from '../../services/index.js'
 import { formatDateBR } from '../../utils/date.js'
 import { UserCircleIcon } from '@heroicons/vue/24/outline'
+import AppLoading from '../../components/common/AppLoading.vue'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+const categoryStore = useFinancialCategoryStore()
 const student = ref(null)
 const studentCrews = ref([])
 const paymentHistory = ref([])
@@ -283,17 +284,7 @@ function formatMoney(v) {
 }
 
 function formatSubtype(subtype) {
-  const map = {
-    'mensalidade': 'Mensalidade',
-    'pagamento_semestral': 'Pag. Semestral',
-    'pagamento_anual': 'Pag. Anual',
-    'rematricula': 'Rematrícula',
-    'taxa_participacao': 'Taxa de Participação',
-    'figurino': 'Figurino',
-    'vendas': 'Vendas',
-    'outros': 'Outros'
-  }
-  return map[subtype] || subtype || '-'
+  return categoryStore.labelFor('entrada', subtype)
 }
 
 function getSubtypeClass(subtype) {
@@ -324,6 +315,7 @@ function formatTipoPlano(tipo) {
 
 onMounted(async () => {
   try {
+    await categoryStore.load()
     student.value = await studentService.getStudentById(route.params.id)
     const map = await studentService.getCrewsForStudents([student.value])
     studentCrews.value = map[student.value.id] || []

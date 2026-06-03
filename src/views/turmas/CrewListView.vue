@@ -42,9 +42,7 @@
         </div>
       </div>
 
-      <div v-if="crewStore.loading && crewStore.crews.length === 0" class="card text-center py-12">
-        <p class="text-gray-600">Carregando...</p>
-      </div>
+      <AppLoading v-if="crewStore.loading && crewStore.crews.length === 0" card message="Carregando turmas..." />
 
       <div v-else-if="crewStore.crews.length === 0" class="card text-center py-12">
         <AcademicCapIcon class="h-12 w-12 mx-auto text-gray-400" />
@@ -106,6 +104,37 @@
           </div>
         </div>
       </div>
+
+      <!-- Paginação -->
+      <div
+        v-if="totalCount > 0"
+        class="card flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-3"
+      >
+        <p class="text-sm text-gray-600">
+          Mostrando {{ rangeStart }}–{{ rangeEnd }} de {{ totalCount }} turma{{ totalCount === 1 ? '' : 's' }}
+        </p>
+        <div v-if="totalPages > 1" class="flex items-center gap-2">
+          <button
+            type="button"
+            class="btn-secondary text-sm py-1.5 px-3 disabled:opacity-50"
+            :disabled="crewStore.loading || crewStore.currentPage === 0"
+            @click="goPrevPage"
+          >
+            Anterior
+          </button>
+          <span class="text-sm text-gray-700 whitespace-nowrap">
+            Página {{ crewStore.currentPage + 1 }} de {{ totalPages }}
+          </span>
+          <button
+            type="button"
+            class="btn-secondary text-sm py-1.5 px-3 disabled:opacity-50"
+            :disabled="crewStore.loading || crewStore.currentPage >= totalPages - 1"
+            @click="goNextPage"
+          >
+            Próxima
+          </button>
+        </div>
+      </div>
     </div>
 </template>
 
@@ -115,6 +144,7 @@ import { useCrewStore } from '../../stores/crew'
 import { useAuthStore } from '../../stores/auth'
 import { teacherService } from '../../services/index.js'
 import { AcademicCapIcon, Squares2X2Icon, ListBulletIcon, UsersIcon } from '@heroicons/vue/24/outline'
+import AppLoading from '../../components/common/AppLoading.vue'
 
 const crewStore = useCrewStore()
 const authStore = useAuthStore()
@@ -124,6 +154,17 @@ const activeFilter = ref('')
 const teacherMap = ref({}) // teacherId -> _User
 
 const isMobile = computed(() => windowWidth.value < 768)
+
+const totalCount = computed(() => crewStore.totalCount)
+const totalPages = computed(() => Math.max(1, Math.ceil(totalCount.value / crewStore.pageSize)))
+const rangeStart = computed(() => {
+  if (totalCount.value === 0) return 0
+  return crewStore.currentPage * crewStore.pageSize + 1
+})
+const rangeEnd = computed(() => {
+  if (totalCount.value === 0) return 0
+  return Math.min(totalCount.value, (crewStore.currentPage + 1) * crewStore.pageSize)
+})
 
 function getTeacherName(crew) {
   const tid = crew.get('teacherId')
@@ -156,6 +197,14 @@ function handleFilter() {
   if (activeFilter.value === 'true') filters.active = true
   else if (activeFilter.value === 'false') filters.active = false
   crewStore.setFilters(filters)
+}
+
+async function goPrevPage() {
+  await crewStore.prevPage()
+}
+
+async function goNextPage() {
+  await crewStore.nextPage()
 }
 
 onMounted(async () => {

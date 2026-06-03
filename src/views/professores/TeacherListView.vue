@@ -33,9 +33,7 @@
       </div>
     </div>
 
-    <div v-if="teacherStore.loading && teacherStore.teachers.length === 0" class="card text-center py-12">
-      <p class="text-gray-600">Carregando...</p>
-    </div>
+    <AppLoading v-if="teacherStore.loading && teacherStore.teachers.length === 0" card message="Carregando professoras..." />
 
     <div v-else-if="teacherStore.teachers.length === 0" class="card text-center py-12">
       <UserIcon class="h-12 w-12 mx-auto text-gray-400" />
@@ -90,6 +88,7 @@ import { ref, onMounted, computed, onUnmounted } from 'vue'
 import { useTeacherStore } from '../../stores/teacher'
 import { useAuthStore } from '../../stores/auth'
 import { UserIcon, Squares2X2Icon, ListBulletIcon } from '@heroicons/vue/24/outline'
+import AppLoading from '../../components/common/AppLoading.vue'
 
 const teacherStore = useTeacherStore()
 const authStore = useAuthStore()

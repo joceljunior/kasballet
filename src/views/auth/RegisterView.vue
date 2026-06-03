@@ -221,7 +221,7 @@
               <div class="space-y-4">
                 <div>
                   <p class="text-xs text-gray-500 mb-2">Selecione uma ou mais turmas.</p>
-                  <div v-if="loadingCrews" class="text-gray-500 text-sm">Carregando turmas...</div>
+                  <AppLoading v-if="loadingCrews" size="sm" inline message="Carregando turmas..." />
                   <div v-else class="flex flex-wrap gap-3">
                     <label
                       v-for="c in crews"
@@ -286,6 +286,7 @@ import { studentService, crewService } from '../../services/index.js'
 import Parse from '../../services/parse.js'
 import { parseDateForStorage } from '../../utils/date.js'
 import { UserCircleIcon, CameraIcon } from '@heroicons/vue/24/outline'
+import AppLoading from '../../components/common/AppLoading.vue'
 
 const loading = ref(false)
 const loadingCrews = ref(false)

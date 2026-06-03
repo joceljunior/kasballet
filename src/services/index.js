@@ -1,6 +1,7 @@
 import Parse from 'parse'
-import { studentRepository, studentCrewRepository, crewRepository, registerRepository, financialEntryRepository, paymentRepository, userRepository } from '../repositories/index.js'
+import { studentRepository, studentCrewRepository, crewRepository, registerRepository, financialCategoryRepository, financialEntryRepository, paymentRepository, userRepository, productRepository, saleRepository } from '../repositories/index.js'
 import { parseDateForStorage } from '../utils/date.js'
+import { DEFAULT_FINANCIAL_CATEGORIES, slugifyCategoryCode } from '../utils/financialCategories.js'
 
 export class StudentService {
   constructor(repository) {
@@ -183,6 +184,7 @@ export class StudentService {
     const now = new Date()
     const currentMonth = now.getMonth() // 0-11
     const currentYear = now.getFullYear()
+    const mensalidadeCode = await financialCategoryService.resolveBehaviorCode('mensalidade')
     
     // Gerar do mês atual até dezembro (mês 11)
     for (let month = currentMonth; month <= 11; month++) {
@@ -190,7 +192,7 @@ export class StudentService {
       try {
         await financialEntryRepository.create({
           type: 'entrada',
-          subtype: 'mensalidade',
+          subtype: mensalidadeCode,
           status: 'pendente',
           date: null, // Data do pagamento será preenchida quando for efetivado
           dateReference: referenceDate, // Mês de referência
@@ -224,11 +226,12 @@ export class StudentService {
     try {
       const now = new Date()
       const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+      const mensalidadeCode = await financialCategoryService.resolveBehaviorCode('mensalidade')
 
       // Buscar lançamentos pendentes futuros desta aluna
       const allEntries = await financialEntryRepository.findEntries(1000, 0, {
         type: 'entrada',
-        subtype: 'mensalidade',
+        subtype: mensalidadeCode,
         studentId: studentId,
         status: 'pendente'
       })
@@ -295,31 +298,44 @@ export class StudentService {
    */
   async searchStudents(query, page = 0, pageSize = 30, filters = {}) {
     const skip = page * pageSize
-    
-    // Se filtro de pendentes, buscar pendentes e depois filtrar por nome/CPF
+
     if (filters.pending) {
       const allPending = await this.repository.findPending(10000, 0)
-      
-      // Filtrar por nome ou CPF
-      const filtered = allPending.filter(student => {
+      const queryLower = query.toLowerCase()
+      const filtered = allPending.filter((student) => {
         const name = student.get('name') || ''
         const cpf = student.get('cpf') || ''
-        const queryLower = query.toLowerCase()
         return name.toLowerCase().includes(queryLower) || cpf.includes(query)
       })
-      
-      // Ordenar e aplicar paginação
       filtered.sort((a, b) => {
         const nameA = a.get('name') || ''
         const nameB = b.get('name') || ''
-        return nameA.localeCompare(nameB)
+        return nameA.localeCompare(nameB, 'pt-BR')
       })
-      
       return filtered.slice(skip, skip + pageSize)
     }
-    
-    // Busca normal
-    return this.repository.search(query, pageSize, skip, filters)
+
+    const allResults = await this.repository.searchAll(query, filters)
+    return allResults.slice(skip, skip + pageSize)
+  }
+
+  async countSearchStudents(query, filters = {}) {
+    if (filters.pending) {
+      const allPending = await this.repository.findPending(10000, 0)
+      const queryLower = query.toLowerCase()
+      return allPending.filter((student) => {
+        const name = student.get('name') || ''
+        const cpf = student.get('cpf') || ''
+        return name.toLowerCase().includes(queryLower) || cpf.includes(query)
+      }).length
+    }
+
+    const allResults = await this.repository.searchAll(query, filters)
+    return allResults.length
+  }
+
+  async countStudents(filters = {}) {
+    return this.repository.countWithFilters(filters)
   }
 
   /**
@@ -400,6 +416,9 @@ export class StudentService {
       const anualStudents = activeStudents.filter(s => s.get('tipoPlano') === 'Anual')
 
       const unpaidStudents = []
+      const mensalidadeCode = await financialCategoryService.resolveBehaviorCode('mensalidade')
+      const semestralCode = await financialCategoryService.resolveBehaviorCode('pagamento_semestral')
+      const anualCode = await financialCategoryService.resolveBehaviorCode('pagamento_anual')
 
       // 1. MENSAL/MENSAL RECORRENTE: não pagou mês anterior → mensalidade em atraso
       if (mensalStudents.length > 0) {
@@ -410,7 +429,7 @@ export class StudentService {
 
         const mensalidadeEntries = await financialEntryRepository.findEntries(10000, 0, {
           type: 'entrada',
-          subtype: 'mensalidade',
+          subtype: mensalidadeCode,
           status: 'efetivado',
           dateReferenceFrom: startOfPreviousMonth,
           dateReferenceTo: endOfPreviousMonth
@@ -430,7 +449,7 @@ export class StudentService {
         
         const semestralEntries = await financialEntryRepository.findEntries(10000, 0, {
           type: 'entrada',
-          subtype: 'pagamento_semestral',
+          subtype: semestralCode,
           status: 'efetivado',
           dateReferenceFrom: sixMonthsAgo,
           dateReferenceTo: now
@@ -450,7 +469,7 @@ export class StudentService {
         
         const anualEntries = await financialEntryRepository.findEntries(10000, 0, {
           type: 'entrada',
-          subtype: 'pagamento_anual',
+          subtype: anualCode,
           status: 'efetivado',
           dateReferenceFrom: oneYearAgo,
           dateReferenceTo: now
@@ -480,6 +499,8 @@ export class StudentService {
     try {
       const now = new Date()
       const expiringStudents = []
+      const semestralCode = await financialCategoryService.resolveBehaviorCode('pagamento_semestral')
+      const anualCode = await financialCategoryService.resolveBehaviorCode('pagamento_anual')
 
       // Buscar todos os alunos ativos semestrais e anuais
       const activeStudents = await this.repository.findActive(10000, 0, { active: true })
@@ -493,7 +514,7 @@ export class StudentService {
         
         const semestralEntries = await financialEntryRepository.findEntries(10000, 0, {
           type: 'entrada',
-          subtype: 'pagamento_semestral',
+          subtype: semestralCode,
           status: 'efetivado',
           dateReferenceFrom: sixMonthsAgo,
           dateReferenceTo: fiveMonthsAgo
@@ -514,7 +535,7 @@ export class StudentService {
         
         const anualEntries = await financialEntryRepository.findEntries(10000, 0, {
           type: 'entrada',
-          subtype: 'pagamento_anual',
+          subtype: anualCode,
           status: 'efetivado',
           dateReferenceFrom: twelveMonthsAgo,
           dateReferenceTo: elevenMonthsAgo
@@ -589,6 +610,14 @@ export class CrewService {
     return this.repository.findByTeacher(teacherId, pageSize, skip, filters)
   }
 
+  async countCrews(filters = {}) {
+    return this.repository.countWithFilters(filters)
+  }
+
+  async countCrewsByTeacher(teacherId, filters = {}) {
+    return this.repository.countByTeacher(teacherId, filters)
+  }
+
   /**
    * Get students by crew ID
    */
@@ -623,6 +652,10 @@ export class RegisterService {
   async getRegisters(page = 0, pageSize = 50, filters = {}) {
     const skip = page * pageSize
     return this.repository.findRegisters(pageSize, skip, filters)
+  }
+
+  async countRegisters(filters = {}) {
+    return this.repository.countRegisters(filters)
   }
 
   /**
@@ -679,6 +712,106 @@ export class RegisterService {
   async deleteRegister(id) {
     return this.repository.delete(id)
   }
+
+  /**
+   * Insights de frequência para o dashboard:
+   * - Alunas ausentes nas últimas 3 chamadas da turma
+   * - Turmas ativas sem chamada na última semana
+   * @param {string[]|null} crewIdsFilter - restringe às turmas informadas (ex.: turmas da professora)
+   */
+  async getDashboardAttendanceInsights(crewIdsFilter = null) {
+    try {
+      let crews
+      if (crewIdsFilter?.length) {
+        crews = (await Promise.all(
+          crewIdsFilter.map((id) => crewRepository.findById(id))
+        )).filter((c) => this._isActiveCrew(c))
+      } else {
+        crews = (await crewRepository.findActive(500, 0, { active: true }))
+          .filter((c) => this._isActiveCrew(c))
+      }
+
+      if (!crews.length) {
+        return { absentStudents: [], crewsWithoutRecentRegister: [] }
+      }
+
+      const crewIds = crews.map((c) => c.id)
+      const activeCrewIdSet = new Set(crewIds)
+      const weekAgo = new Date()
+      weekAgo.setDate(weekAgo.getDate() - 7)
+      weekAgo.setHours(0, 0, 0, 0)
+
+      const [allRegisters, weekRegisters] = await Promise.all([
+        this.repository.findRegisters(10000, 0, { crewIds }),
+        this.repository.findRegisters(10000, 0, { crewIds, dateFrom: weekAgo })
+      ])
+
+      const crewsWithWeekRegister = new Set(
+        weekRegisters
+          .map((r) => r.get('crewId'))
+          .filter((cid) => cid && activeCrewIdSet.has(cid))
+      )
+      const crewsWithoutRecentRegister = crews
+        .filter((c) => !crewsWithWeekRegister.has(c.id))
+        .map((crew) => ({
+          crew,
+          crewName: this._formatCrewLabel(crew)
+        }))
+        .sort((a, b) => a.crewName.localeCompare(b.crewName, 'pt-BR'))
+
+      const lastThreeByCrew = {}
+      for (const reg of allRegisters) {
+        const cid = reg.get('crewId')
+        if (!cid || !activeCrewIdSet.has(cid)) continue
+        if (!lastThreeByCrew[cid]) lastThreeByCrew[cid] = []
+        if (lastThreeByCrew[cid].length < 3) lastThreeByCrew[cid].push(reg)
+      }
+
+      const absentStudents = []
+      for (const crew of crews) {
+        const lastRegisters = lastThreeByCrew[crew.id] || []
+        if (lastRegisters.length < 3) continue
+
+        const students = await studentCrewRepository.findByCrew(crew.id)
+        const crewName = this._formatCrewLabel(crew)
+
+        for (const student of students) {
+          const absentInAll = lastRegisters.every((reg) =>
+            this._isStudentAbsentInRegister(student.id, reg)
+          )
+          if (absentInAll) {
+            absentStudents.push({ student, crew, crewName })
+          }
+        }
+      }
+
+      absentStudents.sort((a, b) => {
+        const nameCmp = (a.student.get('name') || '').localeCompare(b.student.get('name') || '', 'pt-BR')
+        if (nameCmp !== 0) return nameCmp
+        return a.crewName.localeCompare(b.crewName, 'pt-BR')
+      })
+
+      return { absentStudents, crewsWithoutRecentRegister }
+    } catch (error) {
+      console.error('Error fetching dashboard attendance insights:', error)
+      return { absentStudents: [], crewsWithoutRecentRegister: [] }
+    }
+  }
+
+  _formatCrewLabel(crew) {
+    if (!crew) return '—'
+    return `${crew.get('Name') || ''} – ${crew.get('Key') || ''}`.trim() || crew.id
+  }
+
+  _isActiveCrew(crew) {
+    return crew?.get('Active') === true
+  }
+
+  _isStudentAbsentInRegister(studentId, register) {
+    const arr = register.get('studentRegisters') || []
+    const entry = arr.find((x) => x && x.studentId === studentId)
+    return !entry || entry.present !== true
+  }
 }
 
 export class FinancialEntryService {
@@ -686,8 +819,7 @@ export class FinancialEntryService {
     this.repository = repository
   }
 
-  async getEntries(page = 0, pageSize = 100, filters = {}) {
-    const skip = page * pageSize
+  _normalizeEntryFilters(filters = {}) {
     const { monthYear, ...rest } = filters
     const f = { ...rest }
     if (monthYear && monthYear !== 'all') {
@@ -697,7 +829,16 @@ export class FinancialEntryService {
         f.dateReferenceTo = new Date(y, m, 0, 23, 59, 59, 999)
       }
     }
-    return this.repository.findEntries(pageSize, skip, f)
+    return f
+  }
+
+  async getEntries(page = 0, pageSize = 100, filters = {}) {
+    const skip = page * pageSize
+    return this.repository.findEntries(pageSize, skip, this._normalizeEntryFilters(filters))
+  }
+
+  async countEntries(filters = {}) {
+    return this.repository.countEntries(this._normalizeEntryFilters(filters))
   }
 
   async getEntryById(id) {
@@ -804,6 +945,170 @@ export class FinancialEntryService {
       totalSaidasProjetado,
       saldoProjetado: totalEntradasProjetado - totalSaidasProjetado
     }
+  }
+
+  /**
+   * Distribuição por categoria (subtype) para gráficos.
+   * effectiveOnly: true = só efetivados (padrão); false = pendentes + efetivados.
+   */
+  async getDistributionBySubtype(filters = {}, { effectiveOnly = true } = {}) {
+    const { status, type, monthYear, ...f } = filters
+    let dateRef = {}
+    if (monthYear && monthYear !== 'all') {
+      const [y, m] = monthYear.split('-').map(Number)
+      if (y && m) {
+        dateRef = {
+          dateReferenceFrom: new Date(y, m - 1, 1),
+          dateReferenceTo: new Date(y, m, 0, 23, 59, 59, 999)
+        }
+      }
+    }
+    const base = { ...f, ...dateRef, effectiveOnly }
+    const [entradaMap, saidaMap] = await Promise.all([
+      this.repository.sumGroupedBySubtype('entrada', base),
+      this.repository.sumGroupedBySubtype('saida', base)
+    ])
+    const toArray = (map) =>
+      Object.entries(map)
+        .filter(([, value]) => value > 0)
+        .map(([code, value]) => ({ code, value }))
+        .sort((a, b) => b.value - a.value)
+    return {
+      entrada: toArray(entradaMap),
+      saida: toArray(saidaMap)
+    }
+  }
+
+  /** Comparativo entre dois meses (referência dateReference). extraFilters: studentId, etc. */
+  async getMonthComparison(monthA, monthB, extraFilters = {}) {
+    const [totalsA, totalsB] = await Promise.all([
+      this.getTotals({ ...extraFilters, monthYear: monthA }),
+      this.getTotals({ ...extraFilters, monthYear: monthB })
+    ])
+    return { monthA, monthB, totalsA, totalsB }
+  }
+}
+
+export class FinancialCategoryService {
+  constructor(repository, entryRepository) {
+    this.repository = repository
+    this.entryRepository = entryRepository
+    this.behaviorCodeCache = {}
+  }
+
+  clearBehaviorCache() {
+    this.behaviorCodeCache = {}
+  }
+
+  async resolveBehaviorCode(behavior) {
+    if (this.behaviorCodeCache[behavior]) return this.behaviorCodeCache[behavior]
+    try {
+      const cat = await this.repository.findBySystemBehavior(behavior)
+      const code = cat?.get('code') || behavior
+      this.behaviorCodeCache[behavior] = code
+      return code
+    } catch (_) {
+      return behavior
+    }
+  }
+
+  async ensureDefaults() {
+    try {
+      const count = await this.repository.countAll()
+      if (count > 0) return
+      for (const item of DEFAULT_FINANCIAL_CATEGORIES) {
+        await this.repository.create({ ...item, active: true })
+      }
+      this.clearBehaviorCache()
+    } catch (err) {
+      console.error('Erro ao criar categorias padrão:', err)
+    }
+  }
+
+  async getCategories(filters = {}) {
+    await this.ensureDefaults()
+    return this.repository.findCategories(200, 0, filters)
+  }
+
+  async getCategoryById(id) {
+    return this.repository.findById(id)
+  }
+
+  async createCategory(data) {
+    const label = String(data.label || '').trim()
+    if (!label) throw new Error('Informe o nome da categoria.')
+    if (!data.type || !['entrada', 'saida'].includes(data.type)) {
+      throw new Error('Selecione o tipo (entrada ou saída).')
+    }
+
+    let code = slugifyCategoryCode(data.code || label)
+    if (!code) throw new Error('Não foi possível gerar um código para a categoria.')
+
+    const existing = await this.repository.findByCode(code, data.type)
+    if (existing) {
+      let suffix = 2
+      while (await this.repository.findByCode(`${code}_${suffix}`, data.type)) suffix++
+      code = `${code}_${suffix}`
+    }
+
+    const created = await this.repository.create({
+      type: data.type,
+      code,
+      label,
+      requiresStudent: !!data.requiresStudent,
+      requiresTeacher: !!data.requiresTeacher,
+      requiresDescription: !!data.requiresDescription,
+      systemBehavior: null,
+      active: data.active !== false,
+      sortOrder: Number(data.sortOrder) || 99
+    })
+    this.clearBehaviorCache()
+    return created
+  }
+
+  async updateCategory(id, data) {
+    const category = await this.repository.findById(id)
+    const payload = {}
+
+    if (data.label !== undefined) {
+      const label = String(data.label || '').trim()
+      if (!label) throw new Error('Informe o nome da categoria.')
+      payload.label = label
+    }
+    if (data.requiresStudent !== undefined) payload.requiresStudent = !!data.requiresStudent
+    if (data.requiresTeacher !== undefined) payload.requiresTeacher = !!data.requiresTeacher
+    if (data.requiresDescription !== undefined) payload.requiresDescription = !!data.requiresDescription
+    if (data.active !== undefined) payload.active = !!data.active
+    if (data.sortOrder !== undefined) payload.sortOrder = Number(data.sortOrder) || 0
+
+    const updated = await this.repository.update(id, payload)
+    this.clearBehaviorCache()
+    return updated
+  }
+
+  async deleteCategory(id) {
+    const category = await this.repository.findById(id)
+    if (category.get('systemBehavior')) {
+      throw new Error('Esta categoria é usada pelo sistema e não pode ser excluída. Você pode desativá-la.')
+    }
+
+    const entries = await this.entryRepository.findEntries(1, 0, {
+      type: category.get('type'),
+      subtype: category.get('code')
+    })
+    if (entries.length > 0) {
+      throw new Error('Existem lançamentos com esta categoria. Desative-a em vez de excluir.')
+    }
+
+    await this.repository.delete(id)
+    this.clearBehaviorCache()
+  }
+
+  async countEntriesForCategory(category) {
+    return this.entryRepository.findEntries(10000, 0, {
+      type: category.get('type'),
+      subtype: category.get('code')
+    }).then((list) => list.length)
   }
 }
 
@@ -974,7 +1279,180 @@ export class TeacherService {
   }
 }
 
+export class ProductService {
+  constructor(repository) {
+    this.repository = repository
+  }
+
+  async getProducts(page = 0, pageSize = 100, filters = {}) {
+    const skip = page * pageSize
+    return this.repository.findProducts(pageSize, skip, filters)
+  }
+
+  async searchProducts(term, page = 0, pageSize = 50, filters = {}) {
+    const skip = page * pageSize
+    if (!term || !term.trim()) return this.getProducts(page, pageSize, filters)
+    return this.repository.searchByName(term.trim(), pageSize, skip, filters)
+  }
+
+  async getProductById(id) {
+    return this.repository.findById(id)
+  }
+
+  async createProduct(data) {
+    const payload = {
+      name: String(data.name || '').trim(),
+      price: Number(data.price) || 0,
+      stockQuantity: Number(data.stockQuantity) || 0,
+      category: data.category ? String(data.category).trim() : '',
+      description: data.description ? String(data.description).trim() : '',
+      active: data.active !== false
+    }
+    if (!payload.name) throw new Error('Nome do produto é obrigatório')
+    if (payload.price < 0) throw new Error('Preço inválido')
+    if (payload.stockQuantity < 0) throw new Error('Quantidade em estoque inválida')
+    if (data.photo && typeof File !== 'undefined' && data.photo instanceof File) {
+      payload.photo = new Parse.File(data.photo.name, data.photo)
+    }
+    return this.repository.create(payload)
+  }
+
+  async updateProduct(id, data) {
+    const payload = {}
+    if (data.name !== undefined) {
+      const name = String(data.name).trim()
+      if (!name) throw new Error('Nome do produto é obrigatório')
+      payload.name = name
+    }
+    if (data.price !== undefined) {
+      const price = Number(data.price) || 0
+      if (price < 0) throw new Error('Preço inválido')
+      payload.price = price
+    }
+    if (data.stockQuantity !== undefined) {
+      const stock = Number(data.stockQuantity) || 0
+      if (stock < 0) throw new Error('Quantidade em estoque inválida')
+      payload.stockQuantity = stock
+    }
+    if (data.category !== undefined) payload.category = data.category ? String(data.category).trim() : ''
+    if (data.description !== undefined) payload.description = data.description ? String(data.description).trim() : ''
+    if (data.active !== undefined) payload.active = data.active !== false
+    if (data.photo && typeof File !== 'undefined' && data.photo instanceof File) {
+      payload.photo = new Parse.File(data.photo.name, data.photo)
+    } else if (data.photo instanceof Parse.File && !data.photo.url()) {
+      payload.photo = data.photo
+    }
+    if (Object.keys(payload).length === 0) return this.repository.findById(id)
+    return this.repository.update(id, payload)
+  }
+
+  async deleteProduct(id) {
+    return this.repository.delete(id)
+  }
+}
+
+export class SaleService {
+  constructor(saleRepo, productRepo, financialRepo) {
+    this.repository = saleRepo
+    this.productRepository = productRepo
+    this.financialRepository = financialRepo
+  }
+
+  async getSales(page = 0, pageSize = 100, filters = {}) {
+    const skip = page * pageSize
+    return this.repository.findSales(pageSize, skip, filters)
+  }
+
+  async getSaleById(id) {
+    return this.repository.findById(id)
+  }
+
+  /**
+   * Registra venda, baixa estoque e cria lançamento financeiro (entrada/vendas).
+   */
+  async createSale(data) {
+    const user = Parse.User.current()
+    const items = Array.isArray(data.items) ? data.items : []
+    if (!items.length) throw new Error('Adicione ao menos um produto à venda')
+
+    const productMap = {}
+    for (const item of items) {
+      const productId = item.productId
+      if (!productId) throw new Error('Produto inválido na venda')
+      if (!productMap[productId]) {
+        productMap[productId] = await this.productRepository.findById(productId)
+      }
+      const product = productMap[productId]
+      const qty = Number(item.quantity) || 0
+      if (qty <= 0) throw new Error(`Quantidade inválida para ${product.get('name')}`)
+      const stock = Number(product.get('stockQuantity')) || 0
+      if (stock < qty) {
+        throw new Error(`Estoque insuficiente para "${product.get('name')}" (disponível: ${stock})`)
+      }
+    }
+
+    const saleItems = items.map((item) => {
+      const product = productMap[item.productId]
+      const unitPrice = item.unitPrice != null ? Number(item.unitPrice) : Number(product.get('price')) || 0
+      const quantity = Number(item.quantity) || 0
+      return {
+        productId: item.productId,
+        productName: product.get('name'),
+        quantity,
+        unitPrice,
+        lineTotal: unitPrice * quantity
+      }
+    })
+
+    const totalValue = saleItems.reduce((sum, i) => sum + i.lineTotal, 0)
+    if (totalValue <= 0) throw new Error('Valor total da venda deve ser maior que zero')
+
+    const date = data.date instanceof Date ? data.date : parseDateForStorage(data.date || new Date())
+    const itemsDescription = saleItems.map((i) => `${i.quantity}x ${i.productName}`).join(', ')
+    const customerLabel = data.customerName ? String(data.customerName).trim() : ''
+    let description = itemsDescription
+    if (customerLabel) description = `Venda para ${customerLabel}: ${itemsDescription}`
+    if (data.notes) description = `${description} — ${String(data.notes).trim()}`
+
+    const financialEntry = await this.financialRepository.create({
+      type: 'entrada',
+      subtype: 'vendas',
+      status: 'efetivado',
+      date,
+      dateReference: date,
+      value: totalValue,
+      description,
+      studentId: data.studentId || null,
+      teacherId: null,
+      createdByUserId: user ? user.id : null
+    })
+
+    const sale = await this.repository.create({
+      date,
+      totalValue,
+      items: saleItems,
+      customerName: customerLabel,
+      studentId: data.studentId || null,
+      notes: data.notes ? String(data.notes).trim() : '',
+      financialEntryId: financialEntry.id,
+      createdByUserId: user ? user.id : null,
+      status: 'concluida'
+    })
+
+    await this.financialRepository.update(financialEntry.id, { saleId: sale.id })
+
+    for (const item of saleItems) {
+      const product = productMap[item.productId]
+      const newStock = (Number(product.get('stockQuantity')) || 0) - item.quantity
+      await this.productRepository.update(item.productId, { stockQuantity: newStock })
+    }
+
+    return sale
+  }
+}
+
 // Export service instances
+export const financialCategoryService = new FinancialCategoryService(financialCategoryRepository, financialEntryRepository)
 export const studentService = new StudentService(studentRepository)
 export const crewService = new CrewService(crewRepository)
 export const teacherService = new TeacherService(userRepository, crewRepository)
@@ -982,6 +1460,8 @@ export const registerService = new RegisterService(registerRepository)
 export const financialEntryService = new FinancialEntryService(financialEntryRepository)
 export const paymentService = new PaymentService(paymentRepository)
 export const authService = new AuthService(userRepository)
+export const productService = new ProductService(productRepository)
+export const saleService = new SaleService(saleRepository, productRepository, financialEntryRepository)
 
 // Export repositories for direct access if needed
 export { userRepository }

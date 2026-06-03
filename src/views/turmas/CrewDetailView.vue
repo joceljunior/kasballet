@@ -1,8 +1,6 @@
 <template>
   <div class="space-y-6 pb-20 md:pb-6">
-      <div v-if="loading" class="card text-center py-12">
-        <p class="text-gray-600">Carregando...</p>
-      </div>
+      <AppLoading v-if="loading" card message="Carregando turma..." />
 
       <div v-else-if="crew">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between">
@@ -57,7 +55,7 @@
           <h2 class="text-lg font-semibold text-gray-900 mb-4">Alunas Vinculadas</h2>
           
           <div v-if="studentsLoading" class="text-center py-8">
-            <p class="text-gray-600">Carregando alunas...</p>
+            <AppLoading size="sm" inline message="Carregando alunas..." />
           </div>
           
           <div v-else-if="students.length === 0" class="text-center py-8">
@@ -103,6 +101,7 @@ import { useAuthStore } from '../../stores/auth'
 import { crewService, teacherService } from '../../services/index.js'
 import { formatDateBR } from '../../utils/date.js'
 import { UserCircleIcon } from '@heroicons/vue/24/outline'
+import AppLoading from '../../components/common/AppLoading.vue'
 
 const route = useRoute()
 const router = useRouter()

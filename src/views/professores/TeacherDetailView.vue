@@ -1,8 +1,6 @@
 <template>
   <div class="space-y-6 pb-20 md:pb-6">
-    <div v-if="loading && !teacher" class="card text-center py-12">
-      <p class="text-gray-600">Carregando...</p>
-    </div>
+    <AppLoading v-if="loading && !teacher" card message="Carregando professora..." />
 
     <div v-else-if="teacher">
       <div class="flex flex-col md:flex-row md:items-center md:justify-between">
@@ -39,7 +37,7 @@
       <div class="card">
         <h2 class="text-lg font-semibold text-gray-900 mb-4">Turmas</h2>
         <div v-if="crewsLoading" class="text-center py-6">
-          <p class="text-gray-600">Carregando turmas...</p>
+          <AppLoading size="sm" inline message="Carregando turmas..." />
         </div>
         <div v-else-if="crews.length === 0" class="text-center py-6">
           <p class="text-gray-600">Nenhuma turma vinculada</p>
@@ -65,7 +63,7 @@
 
       <div v-if="authStore.isMaster" class="card">
         <h2 class="text-lg font-semibold text-gray-900 mb-4">Histórico de pagamentos</h2>
-        <div v-if="paymentLoading" class="text-sm text-gray-500 py-2">Carregando...</div>
+        <AppLoading v-if="paymentLoading" size="sm" inline message="Carregando pagamentos..." />
         <div v-else-if="!paymentHistory.length" class="text-sm text-gray-500 py-2">Nenhum pagamento lançado a esta professora.</div>
         <div v-else class="overflow-x-auto">
           <table class="min-w-full divide-y divide-gray-200">
@@ -96,6 +94,7 @@ import { useTeacherStore } from '../../stores/teacher'
 import { useAuthStore } from '../../stores/auth'
 import { crewService, financialEntryService } from '../../services/index.js'
 import { formatDateBR } from '../../utils/date.js'
+import AppLoading from '../../components/common/AppLoading.vue'
 
 const route = useRoute()
 const router = useRouter()

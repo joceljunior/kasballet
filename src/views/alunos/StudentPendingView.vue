@@ -2,9 +2,7 @@
   <div class="space-y-6 pb-20 md:pb-6">
       <h1 class="text-2xl font-bold text-gray-900">Alunos Pendentes</h1>
 
-      <div v-if="studentStore.loading && studentStore.students.length === 0" class="card text-center py-12">
-        <p class="text-gray-600">Carregando...</p>
-      </div>
+      <AppLoading v-if="studentStore.loading && studentStore.students.length === 0" card message="Carregando alunos pendentes..." />
 
       <div v-else-if="studentStore.students.length === 0" class="card text-center py-12">
         <p class="text-gray-600">Nenhum aluno pendente</p>
@@ -212,6 +210,7 @@ import { useStudentStore } from '../../stores/student'
 import { studentService } from '../../services/index.js'
 import { formatDateBR } from '../../utils/date.js'
 import { UserCircleIcon } from '@heroicons/vue/24/outline'
+import AppLoading from '../../components/common/AppLoading.vue'
 
 const studentStore = useStudentStore()
 const expandedStudents = ref([])

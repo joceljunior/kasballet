@@ -1,5 +1,8 @@
 <template>
   <div class="space-y-6 pb-20 md:pb-6">
+      <AppLoading v-if="pageLoading" card message="Carregando aluno..." />
+
+      <template v-else>
       <h1 class="text-2xl font-bold text-gray-900">{{ isEdit ? 'Editar Aluno' : 'Novo Aluno' }}</h1>
 
       <form @submit.prevent="handleSubmit" class="space-y-8">
@@ -253,6 +256,7 @@
           </router-link>
         </div>
       </form>
+      </template>
     </div>
 </template>
 
@@ -263,11 +267,13 @@ import { useStudentStore } from '../../stores/student'
 import { studentService, crewService } from '../../services/index.js'
 import { parseDateForStorage, toYYYYMMDDLocal } from '../../utils/date.js'
 import { UserCircleIcon, CameraIcon } from '@heroicons/vue/24/outline'
+import AppLoading from '../../components/common/AppLoading.vue'
 
 const route = useRoute()
 const router = useRouter()
 const studentStore = useStudentStore()
 const loading = ref(false)
+const pageLoading = ref(false)
 const error = ref(null)
 const crews = ref([])
 const photoFile = ref(null)
@@ -304,12 +310,19 @@ const form = ref({
 })
 
 onMounted(async () => {
+  if (!isEdit.value) {
+    try {
+      crews.value = await crewService.getCrews(0, 200)
+    } catch (err) {
+      error.value = err.message || 'Erro ao carregar turmas'
+    }
+    return
+  }
+
+  pageLoading.value = true
   try {
     crews.value = await crewService.getCrews(0, 200)
-    
-    if (isEdit.value) {
-      loading.value = true
-      const student = await studentService.getStudentById(route.params.id)
+    const student = await studentService.getStudentById(route.params.id)
       const map = await studentService.getCrewsForStudents([student])
       const studentCrews = map[student.id] || []
       
@@ -347,14 +360,11 @@ onMounted(async () => {
         dateRegistry: student.get('dateRegistry') || new Date(),
         useImage: student.get('useImage') !== undefined ? student.get('useImage') : true
       }
-      loading.value = false
-    }
   } catch (err) {
     error.value = err.message || 'Erro ao carregar dados'
-    loading.value = false
-    if (isEdit.value) {
-      router.push('/alunos')
-    }
+    router.push('/alunos')
+  } finally {
+    pageLoading.value = false
   }
 })
 

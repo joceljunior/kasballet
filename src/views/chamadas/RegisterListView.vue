@@ -36,9 +36,7 @@
       </div>
     </div>
 
-    <div v-if="registerStore.loading && registerStore.registers.length === 0" class="card text-center py-12">
-      <p class="text-gray-600">Carregando...</p>
-    </div>
+    <AppLoading v-if="registerStore.loading && registerStore.registers.length === 0" card message="Carregando chamadas..." />
 
     <div v-else-if="registerStore.registers.length === 0" class="card text-center py-12">
       <ClipboardDocumentListIcon class="h-12 w-12 mx-auto text-gray-400" />
@@ -70,6 +68,36 @@
           </tbody>
         </table>
       </div>
+
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-3 border-t border-gray-200 bg-gray-50">
+        <p class="text-sm text-gray-600">
+          <template v-if="totalCount > 0">
+            Mostrando {{ rangeStart }}–{{ rangeEnd }} de {{ totalCount }} chamada{{ totalCount === 1 ? '' : 's' }}
+          </template>
+          <template v-else>Nenhuma chamada</template>
+        </p>
+        <div v-if="totalPages > 1" class="flex items-center gap-2">
+          <button
+            type="button"
+            class="btn-secondary text-sm py-1.5 px-3 disabled:opacity-50"
+            :disabled="registerStore.loading || registerStore.currentPage === 0"
+            @click="goPrevPage"
+          >
+            Anterior
+          </button>
+          <span class="text-sm text-gray-700 whitespace-nowrap">
+            Página {{ registerStore.currentPage + 1 }} de {{ totalPages }}
+          </span>
+          <button
+            type="button"
+            class="btn-secondary text-sm py-1.5 px-3 disabled:opacity-50"
+            :disabled="registerStore.loading || registerStore.currentPage >= totalPages - 1"
+            @click="goNextPage"
+          >
+            Próxima
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- Modal confirmar exclusão -->
@@ -86,11 +114,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRegisterStore } from '../../stores/register'
 import { useAuthStore } from '../../stores/auth'
 import { crewService, userRepository } from '../../services/index.js'
 import { formatDateBR } from '../../utils/date.js'
+import AppLoading from '../../components/common/AppLoading.vue'
 import { ClipboardDocumentListIcon } from '@heroicons/vue/24/outline'
 
 const registerStore = useRegisterStore()
@@ -102,6 +131,17 @@ const crewsForFilter = ref([])
 const crewMap = ref({})
 const calledByMap = ref({})
 const toDelete = ref(null)
+
+const totalCount = computed(() => registerStore.totalCount)
+const totalPages = computed(() => Math.max(1, Math.ceil(totalCount.value / registerStore.pageSize)))
+const rangeStart = computed(() => {
+  if (totalCount.value === 0) return 0
+  return registerStore.currentPage * registerStore.pageSize + 1
+})
+const rangeEnd = computed(() => {
+  if (totalCount.value === 0) return 0
+  return Math.min(totalCount.value, (registerStore.currentPage + 1) * registerStore.pageSize)
+})
 
 function getCrewName(crewId) {
   if (!crewId) return '—'
@@ -148,7 +188,18 @@ async function doDelete() {
   try {
     await registerStore.deleteRegister(toDelete.value.id)
     toDelete.value = null
+    await loadCalledByMap()
   } catch (_) {}
+}
+
+async function goPrevPage() {
+  await registerStore.prevPage()
+  await loadCalledByMap()
+}
+
+async function goNextPage() {
+  await registerStore.nextPage()
+  await loadCalledByMap()
 }
 
 onMounted(async () => {

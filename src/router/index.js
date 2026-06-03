@@ -179,6 +179,55 @@ const router = createRouter({
           path: 'lancamentos/:id/edit',
           name: 'financeiro-lancamento-editar',
           component: () => import('../views/financeiro/FinancialFormView.vue')
+        },
+        {
+          path: 'categorias',
+          name: 'financeiro-categorias',
+          component: () => import('../views/financeiro/FinancialCategoryListView.vue')
+        }
+      ]
+    },
+    {
+      path: '/vendas',
+      component: AppLayout,
+      meta: { requiresAuth: true, role: 'Master' },
+      children: [
+        {
+          path: '',
+          name: 'vendas',
+          component: () => import('../views/vendas/SaleListView.vue')
+        },
+        {
+          path: 'nova',
+          name: 'venda-nova',
+          component: () => import('../views/vendas/SaleFormView.vue')
+        },
+        {
+          path: ':id',
+          name: 'venda-detalhes',
+          component: () => import('../views/vendas/SaleDetailView.vue')
+        }
+      ]
+    },
+    {
+      path: '/produtos',
+      component: AppLayout,
+      meta: { requiresAuth: true, role: 'Master' },
+      children: [
+        {
+          path: '',
+          name: 'produtos',
+          component: () => import('../views/produtos/ProductListView.vue')
+        },
+        {
+          path: 'novo',
+          name: 'produto-novo',
+          component: () => import('../views/produtos/ProductFormView.vue')
+        },
+        {
+          path: ':id/edit',
+          name: 'produto-editar',
+          component: () => import('../views/produtos/ProductFormView.vue')
         }
       ]
     }

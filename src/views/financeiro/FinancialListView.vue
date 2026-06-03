@@ -1,18 +1,25 @@
 <template>
   <div class="space-y-6 pb-20 md:pb-6">
+    <AppLoading v-if="pageLoading" card message="Carregando lançamentos..." />
+
+    <template v-else>
     <div class="flex flex-col md:flex-row md:items-center md:justify-between">
       <div>
         <h1 class="text-2xl font-bold text-gray-900">Lançamentos</h1>
         <p class="text-gray-600 mt-1">Entradas e saídas</p>
       </div>
-      <router-link to="/financeiro/lancamentos/novo" class="btn-primary mt-4 md:mt-0">
-        Novo Lançamento
-      </router-link>
+      <div class="flex flex-wrap gap-2 mt-4 md:mt-0">
+        <button type="button" class="btn-secondary" @click="monthCompareOpen = true">Comparativo</button>
+        <router-link to="/financeiro" class="btn-secondary">Voltar</router-link>
+        <router-link to="/financeiro/categorias" class="btn-secondary">Categorias</router-link>
+        <router-link to="/financeiro/lancamentos/novo" class="btn-primary">Novo Lançamento</router-link>
+      </div>
     </div>
 
     <!-- Filtros -->
     <div class="card">
-      <div class="grid grid-cols-1 md:grid-cols-6 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        <StudentFilterSelect v-model="filterStudentId" @change="applyFilters" />
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
           <select v-model="filterType" @change="applyFilters" class="input">
@@ -30,37 +37,31 @@
           </select>
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Subtipo</label>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
           <select v-model="filterSubtype" @change="applyFilters" class="input">
             <option value="">Todos</option>
-            <template v-if="filterType !== 'saida'">
-              <option value="mensalidade">Mensalidade</option>
-              <option value="vendas">Vendas</option>
-              <option value="outros">Outros (entrada)</option>
-            </template>
-            <template v-if="filterType !== 'entrada'">
-              <option value="pagamento">Pagamento</option>
-              <option value="contas">Contas</option>
-              <option value="compras">Compras</option>
-              <option value="impostos">Impostos</option>
-              <option value="outros">Outros (saída)</option>
-            </template>
+            <option v-for="s in filterSubtypes" :key="`${filterType}-${s.value}-${s.label}`" :value="s.value">
+              {{ s.label }}
+            </option>
           </select>
         </div>
+      </div>
+      <div class="flex flex-wrap items-end gap-4">
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Data de</label>
-          <input v-model="filterDateFrom" type="date" class="input" @change="applyFilters" />
+          <input v-model="filterDateFrom" type="date" class="input w-auto" @change="applyFilters" />
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Data até</label>
-          <input v-model="filterDateTo" type="date" class="input" @change="applyFilters" />
+          <input v-model="filterDateTo" type="date" class="input w-auto" @change="applyFilters" />
         </div>
-        <div class="flex items-end">
-          <button type="button" @click="clearFilters" class="btn-secondary w-full md:w-auto">Limpar</button>
-        </div>
+        <button type="button" @click="clearFilters" class="btn-secondary">Limpar</button>
       </div>
     </div>
 
+    <AppLoading v-if="financialStore.loading" card message="Carregando lançamentos..." />
+
+    <template v-else>
     <!-- Saldo Efetivo e Projetado (respeitam o filtro de data) -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div class="card">
@@ -105,11 +106,7 @@
       </div>
     </div>
 
-    <div v-if="financialStore.loading && financialStore.entries.length === 0" class="card text-center py-12">
-      <p class="text-gray-600">Carregando...</p>
-    </div>
-
-    <div v-else-if="financialStore.entries.length === 0" class="card text-center py-12">
+    <div v-if="financialStore.entries.length === 0" class="card text-center py-12">
       <CurrencyDollarIcon class="h-12 w-12 mx-auto text-gray-400" />
       <p class="mt-4 text-gray-600">Nenhum lançamento</p>
     </div>
@@ -154,7 +151,38 @@
           </tbody>
         </table>
       </div>
+
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-3 border-t border-gray-200 bg-gray-50">
+        <p class="text-sm text-gray-600">
+          <template v-if="totalCount > 0">
+            Mostrando {{ rangeStart }}–{{ rangeEnd }} de {{ totalCount }} lançamento{{ totalCount === 1 ? '' : 's' }}
+          </template>
+          <template v-else>Nenhum lançamento</template>
+        </p>
+        <div v-if="totalPages > 1" class="flex items-center gap-2">
+          <button
+            type="button"
+            class="btn-secondary text-sm py-1.5 px-3 disabled:opacity-50"
+            :disabled="financialStore.loading || financialStore.currentPage === 0"
+            @click="goPrevPage"
+          >
+            Anterior
+          </button>
+          <span class="text-sm text-gray-700 whitespace-nowrap">
+            Página {{ financialStore.currentPage + 1 }} de {{ totalPages }}
+          </span>
+          <button
+            type="button"
+            class="btn-secondary text-sm py-1.5 px-3 disabled:opacity-50"
+            :disabled="financialStore.loading || financialStore.currentPage >= totalPages - 1"
+            @click="goNextPage"
+          >
+            Próxima
+          </button>
+        </div>
+      </div>
     </div>
+    </template>
 
     <div v-if="toDelete" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" @click.self="toDelete = null">
       <div class="bg-white rounded-lg shadow-xl max-w-sm w-full p-6">
@@ -165,31 +193,32 @@
         </div>
       </div>
     </div>
+    </template>
   </div>
+
+  <FinancialMonthCompareModal
+    :open="monthCompareOpen"
+    :student-id="filterStudentId"
+    @close="monthCompareOpen = false"
+  />
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useFinancialStore } from '../../stores/financial'
+import { useFinancialCategoryStore } from '../../stores/financialCategory'
 import { studentService, userRepository } from '../../services/index.js'
 import { formatDateBR } from '../../utils/date.js'
 import { CurrencyDollarIcon } from '@heroicons/vue/24/outline'
-
-const SUBTYPE_LABELS = {
-  entrada: { 
-    mensalidade: 'Mensalidade', 
-    pagamento_semestral: 'Pag. Semestral',
-    pagamento_anual: 'Pag. Anual',
-    rematricula: 'Rematrícula',
-    taxa_participacao: 'Taxa Part.',
-    figurino: 'Figurino',
-    vendas: 'Vendas', 
-    outros: 'Outros' 
-  },
-  saida: { pagamento: 'Pagamento', contas: 'Contas', compras: 'Compras', impostos: 'Impostos', outros: 'Outros' }
-}
+import StudentFilterSelect from '../../components/common/StudentFilterSelect.vue'
+import AppLoading from '../../components/common/AppLoading.vue'
+import FinancialMonthCompareModal from '../../components/financeiro/FinancialMonthCompareModal.vue'
 
 const financialStore = useFinancialStore()
+const categoryStore = useFinancialCategoryStore()
+const pageLoading = ref(true)
+const monthCompareOpen = ref(false)
+const filterStudentId = ref('')
 const filterType = ref('')
 const filterStatus = ref('')
 const filterSubtype = ref('')
@@ -199,21 +228,33 @@ const studentMap = ref({})
 const teacherMap = ref({})
 const toDelete = ref(null)
 
+const filterSubtypes = computed(() => categoryStore.filterOptions(filterType.value))
+
+const totalCount = computed(() => financialStore.totalCount)
+const totalPages = computed(() => Math.max(1, Math.ceil(totalCount.value / financialStore.pageSize)))
+const rangeStart = computed(() => {
+  if (totalCount.value === 0) return 0
+  return financialStore.currentPage * financialStore.pageSize + 1
+})
+const rangeEnd = computed(() => {
+  if (totalCount.value === 0) return 0
+  return Math.min(totalCount.value, (financialStore.currentPage + 1) * financialStore.pageSize)
+})
+
 function formatMoney(v) {
   const n = Number(v)
   return isNaN(n) ? '0,00' : n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
 function subtypeLabel(type, subtype) {
-  const t = SUBTYPE_LABELS[type]
-  return (t && t[subtype]) || subtype || '—'
+  return categoryStore.labelFor(type, subtype)
 }
 
 function getDescriptionOrRef(e) {
   const d = e.get('description')
   if (d && String(d).trim()) return String(d).trim()
-  if (e.get('subtype') === 'mensalidade' && e.get('studentId')) return studentMap.value[e.get('studentId')]?.get('name') || e.get('studentId')
-  if (e.get('subtype') === 'pagamento' && e.get('teacherId')) return teacherMap.value[e.get('teacherId')]?.get('username') || e.get('teacherId')
+  if (e.get('studentId')) return studentMap.value[e.get('studentId')]?.get('name') || e.get('studentId')
+  if (e.get('teacherId')) return teacherMap.value[e.get('teacherId')]?.get('username') || e.get('teacherId')
   return '—'
 }
 
@@ -234,8 +275,19 @@ async function loadMaps() {
   }
 }
 
+function syncFromStore() {
+  const f = financialStore.filters
+  filterStudentId.value = f.studentId || ''
+  filterType.value = f.type || ''
+  filterStatus.value = f.status || ''
+  filterSubtype.value = f.subtype || ''
+  filterDateFrom.value = f.dateFrom || ''
+  filterDateTo.value = f.dateTo || ''
+}
+
 async function applyFilters() {
   const f = {}
+  if (filterStudentId.value) f.studentId = filterStudentId.value
   if (filterType.value) f.type = filterType.value
   if (filterStatus.value) f.status = filterStatus.value
   if (filterSubtype.value) f.subtype = filterSubtype.value
@@ -246,6 +298,7 @@ async function applyFilters() {
 }
 
 function clearFilters() {
+  filterStudentId.value = ''
   filterType.value = ''
   filterStatus.value = ''
   filterSubtype.value = ''
@@ -259,10 +312,35 @@ async function doDelete() {
   try {
     await financialStore.deleteEntry(toDelete.value.id)
     toDelete.value = null
+    await loadMaps()
   } catch (_) {}
+}
+
+async function goPrevPage() {
+  await financialStore.prevPage()
+  await loadMaps()
+}
+
+async function goNextPage() {
+  await financialStore.nextPage()
+  await loadMaps()
 }
 
 watch(() => financialStore.entries, () => loadMaps(), { deep: true })
 
-onMounted(() => applyFilters())
+watch(filterType, () => {
+  if (!categoryStore.isValidForType(filterType.value, filterSubtype.value)) {
+    filterSubtype.value = ''
+  }
+})
+
+onMounted(async () => {
+  try {
+    await categoryStore.load()
+    syncFromStore()
+    await applyFilters()
+  } finally {
+    pageLoading.value = false
+  }
+})
 </script>

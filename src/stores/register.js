@@ -7,12 +7,30 @@ export const useRegisterStore = defineStore('register', () => {
   const loading = ref(false)
   const error = ref(null)
   const filters = ref({})
+  const currentPage = ref(0)
+  const pageSize = ref(25)
+  const totalCount = ref(0)
 
-  async function loadRegisters(resetFilters = false) {
+  async function loadRegisters() {
     loading.value = true
     error.value = null
     try {
-      registers.value = await registerService.getRegisters(0, 100, filters.value)
+      const [results, count] = await Promise.all([
+        registerService.getRegisters(currentPage.value, pageSize.value, filters.value),
+        registerService.countRegisters(filters.value)
+      ])
+
+      totalCount.value = count
+
+      const maxPage = Math.max(0, Math.ceil(count / pageSize.value) - 1)
+      if (currentPage.value > maxPage) {
+        currentPage.value = maxPage
+        if (count > 0) {
+          return loadRegisters()
+        }
+      }
+
+      registers.value = results
     } catch (err) {
       error.value = err.message || 'Erro ao carregar chamadas'
       throw err
@@ -23,7 +41,23 @@ export const useRegisterStore = defineStore('register', () => {
 
   async function setFilters(newFilters) {
     filters.value = { ...newFilters }
+    currentPage.value = 0
     return loadRegisters()
+  }
+
+  async function goToPage(page) {
+    const maxPage = Math.max(0, Math.ceil(totalCount.value / pageSize.value) - 1)
+    if (page < 0 || page > maxPage) return
+    currentPage.value = page
+    await loadRegisters()
+  }
+
+  async function nextPage() {
+    await goToPage(currentPage.value + 1)
+  }
+
+  async function prevPage() {
+    await goToPage(currentPage.value - 1)
   }
 
   async function getRegisterById(id) {
@@ -44,6 +78,7 @@ export const useRegisterStore = defineStore('register', () => {
     error.value = null
     try {
       const r = await registerService.createRegister(data)
+      currentPage.value = 0
       await loadRegisters()
       return r
     } catch (err) {
@@ -75,7 +110,10 @@ export const useRegisterStore = defineStore('register', () => {
     error.value = null
     try {
       await registerService.deleteRegister(id)
-      registers.value = registers.value.filter((x) => x.id !== id)
+      if (registers.value.length === 1 && currentPage.value > 0) {
+        currentPage.value -= 1
+      }
+      await loadRegisters()
     } catch (err) {
       error.value = err.message || 'Erro ao excluir chamada'
       throw err
@@ -89,8 +127,14 @@ export const useRegisterStore = defineStore('register', () => {
     loading,
     error,
     filters,
+    currentPage,
+    pageSize,
+    totalCount,
     loadRegisters,
     setFilters,
+    goToPage,
+    nextPage,
+    prevPage,
     getRegisterById,
     createRegister,
     updateRegister,

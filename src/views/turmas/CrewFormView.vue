@@ -1,5 +1,8 @@
 <template>
   <div class="space-y-6 pb-20 md:pb-6">
+      <AppLoading v-if="pageLoading" card message="Carregando turma..." />
+
+      <template v-else>
       <h1 class="text-2xl font-bold text-gray-900">{{ isEdit ? 'Editar Turma' : 'Nova Turma' }}</h1>
 
       <form @submit.prevent="handleSubmit" class="card space-y-6">
@@ -50,6 +53,7 @@
           </router-link>
         </div>
       </form>
+      </template>
     </div>
 </template>
 
@@ -59,12 +63,14 @@ import { useRoute, useRouter } from 'vue-router'
 import { useCrewStore } from '../../stores/crew'
 import { useAuthStore } from '../../stores/auth'
 import { teacherService } from '../../services/index.js'
+import AppLoading from '../../components/common/AppLoading.vue'
 
 const route = useRoute()
 const router = useRouter()
 const crewStore = useCrewStore()
 const authStore = useAuthStore()
 const loading = ref(false)
+const pageLoading = ref(false)
 const error = ref(null)
 const teachers = ref([])
 
@@ -83,8 +89,8 @@ onMounted(async () => {
     try { teachers.value = await teacherService.getTeachers() } catch (_) {}
   }
   if (isEdit.value) {
+    pageLoading.value = true
     try {
-      loading.value = true
       const crew = await crewStore.getCrewById(route.params.id)
       form.value = {
         Name: crew.get('Name') || '',
@@ -97,7 +103,7 @@ onMounted(async () => {
       error.value = err.message || 'Erro ao carregar turma'
       router.push('/turmas')
     } finally {
-      loading.value = false
+      pageLoading.value = false
     }
   }
 })

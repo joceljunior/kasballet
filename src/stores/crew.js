@@ -8,7 +8,10 @@ export const useCrewStore = defineStore('crew', () => {
   const loading = ref(false)
   const error = ref(null)
   const filters = ref({})
-  const studentCountMap = ref({}) // crewId -> number of active students
+  const studentCountMap = ref({})
+  const currentPage = ref(0)
+  const pageSize = ref(30)
+  const totalCount = ref(0)
 
   async function loadCrews() {
     loading.value = true
@@ -16,15 +19,35 @@ export const useCrewStore = defineStore('crew', () => {
 
     try {
       const authStore = useAuthStore()
-      // Professora: vê apenas suas turmas (Crew.teacherId = user.id)
+      let results
+      let count
+
       if (authStore.isTeacher && authStore.user?.id) {
-        crews.value = await crewService.getCrewsByTeacher(authStore.user.id, 0, 100, filters.value)
+        ;[results, count] = await Promise.all([
+          crewService.getCrewsByTeacher(authStore.user.id, currentPage.value, pageSize.value, filters.value),
+          crewService.countCrewsByTeacher(authStore.user.id, filters.value)
+        ])
       } else {
-        crews.value = await crewService.getCrews(0, 100, filters.value)
+        ;[results, count] = await Promise.all([
+          crewService.getCrews(currentPage.value, pageSize.value, filters.value),
+          crewService.countCrews(filters.value)
+        ])
       }
-      // Carregar contagem de alunos por turma
+
+      totalCount.value = count
+
+      const maxPage = Math.max(0, Math.ceil(count / pageSize.value) - 1)
+      if (currentPage.value > maxPage) {
+        currentPage.value = maxPage
+        if (count > 0) {
+          return loadCrews()
+        }
+      }
+
+      crews.value = results
+
       if (crews.value.length > 0) {
-        const crewIds = crews.value.map(c => c.id)
+        const crewIds = crews.value.map((c) => c.id)
         studentCountMap.value = await crewService.countStudentsByCrews(crewIds)
       } else {
         studentCountMap.value = {}
@@ -39,7 +62,23 @@ export const useCrewStore = defineStore('crew', () => {
 
   function setFilters(newFilters) {
     filters.value = { ...newFilters }
-    loadCrews()
+    currentPage.value = 0
+    return loadCrews()
+  }
+
+  async function goToPage(page) {
+    const maxPage = Math.max(0, Math.ceil(totalCount.value / pageSize.value) - 1)
+    if (page < 0 || page > maxPage) return
+    currentPage.value = page
+    await loadCrews()
+  }
+
+  async function nextPage() {
+    await goToPage(currentPage.value + 1)
+  }
+
+  async function prevPage() {
+    await goToPage(currentPage.value - 1)
   }
 
   async function getCrewById(id) {
@@ -62,7 +101,8 @@ export const useCrewStore = defineStore('crew', () => {
 
     try {
       const newCrew = await crewService.createCrew(data)
-      crews.value.push(newCrew)
+      currentPage.value = 0
+      await loadCrews()
       return newCrew
     } catch (err) {
       error.value = err.message || 'Erro ao criar turma'
@@ -78,7 +118,7 @@ export const useCrewStore = defineStore('crew', () => {
 
     try {
       const updated = await crewService.updateCrew(id, data)
-      const index = crews.value.findIndex(c => c.id === id)
+      const index = crews.value.findIndex((c) => c.id === id)
       if (index !== -1) {
         crews.value[index] = updated
       }
@@ -97,7 +137,10 @@ export const useCrewStore = defineStore('crew', () => {
 
     try {
       await crewService.deleteCrew(id)
-      crews.value = crews.value.filter(c => c.id !== id)
+      if (crews.value.length === 1 && currentPage.value > 0) {
+        currentPage.value -= 1
+      }
+      await loadCrews()
     } catch (err) {
       error.value = err.message || 'Erro ao deletar turma'
       throw err
@@ -112,8 +155,14 @@ export const useCrewStore = defineStore('crew', () => {
     error,
     filters,
     studentCountMap,
+    currentPage,
+    pageSize,
+    totalCount,
     loadCrews,
     setFilters,
+    goToPage,
+    nextPage,
+    prevPage,
     getCrewById,
     createCrew,
     updateCrew,

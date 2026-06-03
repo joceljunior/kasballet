@@ -118,59 +118,87 @@ export class StudentRepository extends BaseRepository {
   }
 
   /**
+   * Conta alunos com os mesmos filtros de findActive.
+   */
+  async countWithFilters(filters = {}) {
+    if (filters.pending) {
+      return this.countPending()
+    }
+
+    if (filters.inactive) {
+      const query = new Parse.Query(this.ParseObject)
+      query.equalTo('active', false)
+      query.equalTo('inactive', true)
+      return query.count()
+    }
+
+    const query = new Parse.Query(this.ParseObject)
+    Object.keys(filters).forEach((key) => {
+      if (filters[key] !== undefined && filters[key] !== null && filters[key] !== '' && key !== 'pending' && key !== 'inactive') {
+        query.equalTo(key, filters[key])
+      }
+    })
+    return query.count()
+  }
+
+  _applySearchFilters(query, filters = {}) {
+    if (filters.inactive) {
+      query.equalTo('active', false)
+      query.equalTo('inactive', true)
+    }
+    Object.keys(filters).forEach((key) => {
+      if (filters[key] !== undefined && filters[key] !== null && filters[key] !== '' && key !== 'pending' && key !== 'inactive') {
+        query.equalTo(key, filters[key])
+      }
+    })
+  }
+
+  _dedupeStudentsById(results) {
+    const uniqueResults = []
+    const seenIds = new Set()
+    for (const result of results) {
+      if (!seenIds.has(result.id)) {
+        seenIds.add(result.id)
+        uniqueResults.push(result)
+      }
+    }
+    uniqueResults.sort((a, b) => {
+      const nameA = a.get('name') || ''
+      const nameB = b.get('name') || ''
+      return nameA.localeCompare(nameB, 'pt-BR')
+    })
+    return uniqueResults
+  }
+
+  /**
+   * Busca todos os alunos que correspondem ao termo (nome ou CPF), sem paginar.
+   */
+  async searchAll(query, filters = {}) {
+    const nameQuery = new Parse.Query(this.ParseObject)
+    nameQuery.matches('name', new RegExp(query, 'i'))
+    this._applySearchFilters(nameQuery, filters)
+
+    const cpfQuery = new Parse.Query(this.ParseObject)
+    cpfQuery.equalTo('cpf', query)
+    this._applySearchFilters(cpfQuery, filters)
+
+    const [nameResults, cpfResults] = await Promise.all([
+      nameQuery.ascending('name').limit(10000).find(),
+      cpfQuery.ascending('name').limit(10000).find()
+    ])
+
+    return this._dedupeStudentsById([...nameResults, ...cpfResults])
+  }
+
+  /**
    * Search students by name or CPF
    * Aceita filtros opcionais (ex: active)
    * Busca case-insensitive usando regex para nome
    * Nota: filtro 'pending' é tratado no serviço, não aqui
    */
   async search(query, limit = 30, skip = 0, filters = {}) {
-    // Fazer duas buscas separadas e combinar resultados
-    const nameQuery = new Parse.Query(this.ParseObject)
-    nameQuery.matches('name', new RegExp(query, 'i'))
-    
-    // Aplicar filtros na query de nome (exceto 'pending' e 'inactive' que são tratados no serviço)
-    Object.keys(filters).forEach(key => {
-      if (filters[key] !== undefined && filters[key] !== null && filters[key] !== '' && key !== 'pending' && key !== 'inactive') {
-        nameQuery.equalTo(key, filters[key])
-      }
-    })
-    
-    const cpfQuery = new Parse.Query(this.ParseObject)
-    cpfQuery.equalTo('cpf', query)
-    
-    // Aplicar filtros na query de CPF (exceto 'pending' e 'inactive' que são tratados no serviço)
-    Object.keys(filters).forEach(key => {
-      if (filters[key] !== undefined && filters[key] !== null && filters[key] !== '' && key !== 'pending' && key !== 'inactive') {
-        cpfQuery.equalTo(key, filters[key])
-      }
-    })
-    
-    // Executar ambas as buscas em paralelo
-    const [nameResults, cpfResults] = await Promise.all([
-      nameQuery.ascending('name').limit(limit).skip(skip).find(),
-      cpfQuery.ascending('name').limit(limit).skip(skip).find()
-    ])
-    
-    // Combinar resultados e remover duplicatas
-    const allResults = [...nameResults, ...cpfResults]
-    const uniqueResults = []
-    const seenIds = new Set()
-    
-    for (const result of allResults) {
-      if (!seenIds.has(result.id)) {
-        seenIds.add(result.id)
-        uniqueResults.push(result)
-      }
-    }
-    
-    // Ordenar por nome e limitar
-    uniqueResults.sort((a, b) => {
-      const nameA = a.get('name') || ''
-      const nameB = b.get('name') || ''
-      return nameA.localeCompare(nameB)
-    })
-    
-    return uniqueResults.slice(0, limit)
+    const allResults = await this.searchAll(query, filters)
+    return allResults.slice(skip, skip + limit)
   }
 
   /**
@@ -333,16 +361,25 @@ export class CrewRepository extends BaseRepository {
    * Find crews com filtro opcional: active (true=ativas, false=inativas, undefined=todos)
    */
   async findActive(limit = 50, skip = 0, filters = {}) {
+    const query = this._buildCrewsQuery(filters)
+    query.ascending('Name')
+    query.limit(limit)
+    query.skip(skip)
+    return query.find()
+  }
+
+  _buildCrewsQuery(filters = {}) {
     const query = new Parse.Query(this.ParseObject)
     if (filters.active === true) {
       query.equalTo('Active', true)
     } else if (filters.active === false) {
       query.equalTo('Active', false)
     }
-    query.ascending('Name')
-    query.limit(limit)
-    query.skip(skip)
-    return query.find()
+    return query
+  }
+
+  async countWithFilters(filters = {}) {
+    return this._buildCrewsQuery(filters).count()
   }
 
   /**
@@ -357,14 +394,23 @@ export class CrewRepository extends BaseRepository {
    * filters.active: true=ativas, false=inativas, undefined=todas
    */
   async findByTeacher(teacherId, limit = 50, skip = 0, filters = {}) {
-    const query = new Parse.Query(this.ParseObject)
-    query.equalTo('teacherId', teacherId)
-    if (filters.active === true) query.equalTo('Active', true)
-    else if (filters.active === false) query.equalTo('Active', false)
+    const query = this._buildTeacherQuery(teacherId, filters)
     query.ascending('Name')
     query.limit(limit)
     query.skip(skip)
     return query.find()
+  }
+
+  _buildTeacherQuery(teacherId, filters = {}) {
+    const query = new Parse.Query(this.ParseObject)
+    query.equalTo('teacherId', teacherId)
+    if (filters.active === true) query.equalTo('Active', true)
+    else if (filters.active === false) query.equalTo('Active', false)
+    return query
+  }
+
+  async countByTeacher(teacherId, filters = {}) {
+    return this._buildTeacherQuery(teacherId, filters).count()
   }
 }
 
@@ -378,6 +424,14 @@ export class RegisterRepository extends BaseRepository {
    * studentRegisters: Array<{ studentId, present }>
    */
   async findRegisters(limit = 50, skip = 0, filters = {}) {
+    const query = this._buildRegistersQuery(filters)
+    query.descending('dateregister')
+    query.limit(limit)
+    query.skip(skip)
+    return query.find()
+  }
+
+  _buildRegistersQuery(filters = {}) {
     const query = new Parse.Query(this.ParseObject)
     if (filters.crewId != null && filters.crewId !== '') {
       query.equalTo('crewId', filters.crewId)
@@ -392,10 +446,11 @@ export class RegisterRepository extends BaseRepository {
       const d = parseFilterDateTo(filters.dateTo)
       if (d && !isNaN(d.getTime())) query.lessThanOrEqualTo('dateregister', d)
     }
-    query.descending('dateregister')
-    query.limit(limit)
-    query.skip(skip)
-    return query.find()
+    return query
+  }
+
+  async countRegisters(filters = {}) {
+    return this._buildRegistersQuery(filters).count()
   }
 
   /**
@@ -413,23 +468,58 @@ export class RegisterRepository extends BaseRepository {
   }
 }
 
+export class FinancialCategoryRepository extends BaseRepository {
+  constructor() {
+    super('FinancialCategory')
+  }
+
+  async findCategories(limit = 200, skip = 0, filters = {}) {
+    const query = new Parse.Query(this.ParseObject)
+    if (filters.type) query.equalTo('type', filters.type)
+    if (filters.active === true) query.equalTo('active', true)
+    else if (filters.active === false) query.equalTo('active', false)
+    query.ascending('sortOrder')
+    query.addAscending('label')
+    query.limit(limit)
+    query.skip(skip)
+    return query.find()
+  }
+
+  async findByCode(code, type = null) {
+    const query = new Parse.Query(this.ParseObject)
+    query.equalTo('code', code)
+    if (type) query.equalTo('type', type)
+    return query.first()
+  }
+
+  async findBySystemBehavior(behavior) {
+    const query = new Parse.Query(this.ParseObject)
+    query.equalTo('systemBehavior', behavior)
+    query.equalTo('active', true)
+    return query.first()
+  }
+
+  async countAll() {
+    const query = new Parse.Query(this.ParseObject)
+    return query.count()
+  }
+}
+
 export class FinancialEntryRepository extends BaseRepository {
   constructor() {
     super('FinancialEntry')
   }
 
   /**
-   * Find entries com filtros: type, subtype, status, dateFrom, dateTo, studentId, teacherId. Ordem: date desc.
-   * status: "pendente" | "efetivado" (opcional)
+   * Monta query com os filtros de lançamentos (reutilizado em find/count).
    */
-  async findEntries(limit = 100, skip = 0, filters = {}) {
+  _buildEntriesQuery(filters = {}) {
     const query = new Parse.Query(this.ParseObject)
     if (filters.type) query.equalTo('type', filters.type)
     if (filters.subtype) query.equalTo('subtype', filters.subtype)
     if (filters.status) query.equalTo('status', filters.status)
     if (filters.studentId) query.equalTo('studentId', filters.studentId)
     if (filters.teacherId) query.equalTo('teacherId', filters.teacherId)
-    // Filtros por date (data do lançamento)
     if (filters.dateFrom != null) {
       const d = parseFilterDateFrom(filters.dateFrom)
       if (d && !isNaN(d.getTime())) query.greaterThanOrEqualTo('date', d)
@@ -438,7 +528,6 @@ export class FinancialEntryRepository extends BaseRepository {
       const d = parseFilterDateTo(filters.dateTo)
       if (d && !isNaN(d.getTime())) query.lessThanOrEqualTo('date', d)
     }
-    // Filtros por dateReference (mês de referência)
     if (filters.dateReferenceFrom != null) {
       const d = parseFilterDateFrom(filters.dateReferenceFrom)
       if (d && !isNaN(d.getTime())) query.greaterThanOrEqualTo('dateReference', d)
@@ -447,12 +536,28 @@ export class FinancialEntryRepository extends BaseRepository {
       const d = parseFilterDateTo(filters.dateReferenceTo)
       if (d && !isNaN(d.getTime())) query.lessThanOrEqualTo('dateReference', d)
     }
-    // Ordenar por date, com fallback para createdAt quando date é null
+    return query
+  }
+
+  /**
+   * Find entries com filtros: type, subtype, status, dateFrom, dateTo, studentId, teacherId. Ordem: date desc.
+   * status: "pendente" | "efetivado" (opcional)
+   */
+  async findEntries(limit = 100, skip = 0, filters = {}) {
+    const query = this._buildEntriesQuery(filters)
     query.addDescending('date')
     query.addDescending('createdAt')
     query.limit(limit)
     query.skip(skip)
     return query.find()
+  }
+
+  /**
+   * Conta lançamentos com os mesmos filtros da listagem.
+   */
+  async countEntries(filters = {}) {
+    const query = this._buildEntriesQuery(filters)
+    return query.count()
   }
 
   /**
@@ -467,7 +572,7 @@ export class FinancialEntryRepository extends BaseRepository {
    * Histórico de pagamentos a uma professora (saida, pagamento, teacherId)
    */
   async findByTeacher(teacherId, limit = 100, skip = 0) {
-    return this.findEntries(limit, skip, { type: 'saida', subtype: 'pagamento', teacherId })
+    return this.findEntries(limit, skip, { type: 'saida', teacherId })
   }
 
   /**
@@ -502,6 +607,25 @@ export class FinancialEntryRepository extends BaseRepository {
       ? list.filter((o) => { const s = o.get('status'); return s === 'efetivado' || s === null || s === undefined || s === '' })
       : list
     return toSum.reduce((s, o) => s + (Number(o.get('value')) || 0), 0)
+  }
+
+  /**
+   * Soma valores agrupados por subtype para um type.
+   * Retorna mapa subtype -> total.
+   */
+  async sumGroupedBySubtype(type, filters = {}) {
+    const { effectiveOnly, ...rest } = filters
+    const query = this._buildEntriesQuery({ ...rest, type })
+    const list = await query.limit(10000).find()
+    const toSum = effectiveOnly === true
+      ? list.filter((o) => { const s = o.get('status'); return s === 'efetivado' || s === null || s === undefined || s === '' })
+      : list
+    const map = {}
+    for (const o of toSum) {
+      const subtype = o.get('subtype') || 'outros'
+      map[subtype] = (map[subtype] || 0) + (Number(o.get('value')) || 0)
+    }
+    return map
   }
 }
 
@@ -597,11 +721,74 @@ export class UserRepository extends BaseRepository {
   }
 }
 
+export class ProductRepository extends BaseRepository {
+  constructor() {
+    super('Product')
+  }
+
+  /**
+   * Lista produtos com filtros opcionais (active, category). Ordem: name asc.
+   */
+  async findProducts(limit = 100, skip = 0, filters = {}) {
+    const query = new Parse.Query(this.ParseObject)
+    if (filters.active === true) query.equalTo('active', true)
+    else if (filters.active === false) query.equalTo('active', false)
+    if (filters.category) query.equalTo('category', filters.category)
+    if (filters.lowStock === true) {
+      query.lessThanOrEqualTo('stockQuantity', 5)
+    }
+    query.ascending('name')
+    query.limit(limit)
+    query.skip(skip)
+    return query.find()
+  }
+
+  async searchByName(term, limit = 50, skip = 0, filters = {}) {
+    const query = new Parse.Query(this.ParseObject)
+    query.matches('name', new RegExp(term, 'i'))
+    if (filters.active === true) query.equalTo('active', true)
+    query.ascending('name')
+    query.limit(limit)
+    query.skip(skip)
+    return query.find()
+  }
+}
+
+export class SaleRepository extends BaseRepository {
+  constructor() {
+    super('Sale')
+  }
+
+  /**
+   * Lista vendas com filtros: dateFrom, dateTo, studentId. Ordem: date desc.
+   */
+  async findSales(limit = 100, skip = 0, filters = {}) {
+    const query = new Parse.Query(this.ParseObject)
+    if (filters.studentId) query.equalTo('studentId', filters.studentId)
+    if (filters.dateFrom != null) {
+      const d = parseFilterDateFrom(filters.dateFrom)
+      if (d && !isNaN(d.getTime())) query.greaterThanOrEqualTo('date', d)
+    }
+    if (filters.dateTo != null) {
+      const d = parseFilterDateTo(filters.dateTo)
+      if (d && !isNaN(d.getTime())) query.lessThanOrEqualTo('date', d)
+    }
+    query.addDescending('date')
+    query.addDescending('createdAt')
+    query.limit(limit)
+    query.skip(skip)
+    return query.find()
+  }
+}
+
 // Export all repositories
 export const studentRepository = new StudentRepository()
 export const studentCrewRepository = new StudentCrewRepository()
 export const crewRepository = new CrewRepository()
 export const registerRepository = new RegisterRepository()
+export const financialCategoryRepository = new FinancialCategoryRepository()
 export const financialEntryRepository = new FinancialEntryRepository()
 export const paymentRepository = new PaymentRepository()
 export const userRepository = new UserRepository()
+export const productRepository = new ProductRepository()
+export const saleRepository = new SaleRepository()

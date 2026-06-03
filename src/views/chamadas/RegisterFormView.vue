@@ -1,5 +1,8 @@
 <template>
   <div class="space-y-6 pb-20 md:pb-6">
+    <AppLoading v-if="pageLoading" card message="Carregando chamada..." />
+
+    <template v-else>
     <h1 class="text-2xl font-bold text-gray-900">{{ isEdit ? 'Editar Chamada' : 'Nova Chamada' }}</h1>
 
     <form @submit.prevent="handleSubmit" class="card space-y-6">
@@ -29,7 +32,7 @@
         <label class="block text-sm font-medium text-gray-700 mb-2">Presença</label>
         <p class="text-sm text-gray-500 mb-2">Marque as alunas presentes. Alunas ativas da turma.</p>
         <div v-if="!form.crewId" class="text-sm text-gray-500 py-4">Selecione uma turma para carregar a lista.</div>
-        <div v-else-if="studentsLoading" class="text-sm text-gray-500 py-4">Carregando alunas...</div>
+        <AppLoading v-else-if="studentsLoading" size="sm" inline message="Carregando alunas..." />
         <div v-else-if="students.length === 0" class="text-sm text-gray-500 py-4">Nenhuma aluna ativa nesta turma.</div>
         <div v-else class="border border-gray-200 rounded-lg divide-y divide-gray-200 max-h-64 overflow-y-auto">
           <label
@@ -58,6 +61,7 @@
         </router-link>
       </div>
     </form>
+    </template>
   </div>
 </template>
 
@@ -68,12 +72,14 @@ import { useRegisterStore } from '../../stores/register'
 import { useAuthStore } from '../../stores/auth'
 import { crewService } from '../../services/index.js'
 import { formatDateBR, toYYYYMMDDLocal } from '../../utils/date.js'
+import AppLoading from '../../components/common/AppLoading.vue'
 
 const route = useRoute()
 const router = useRouter()
 const registerStore = useRegisterStore()
 const authStore = useAuthStore()
 const loading = ref(false)
+const pageLoading = ref(false)
 const error = ref(null)
 const studentsLoading = ref(false)
 const crews = ref([])
@@ -114,8 +120,8 @@ onMounted(async () => {
   } catch (_) {}
 
   if (isEdit.value) {
+    pageLoading.value = true
     try {
-      loading.value = true
       const reg = await registerStore.getRegisterById(route.params.id)
       const arr = reg.get('studentRegisters') || []
       const presentIds = arr.filter((x) => x && x.present === true).map((x) => x.studentId)
@@ -130,7 +136,7 @@ onMounted(async () => {
       error.value = err.message || 'Erro ao carregar chamada'
       router.push('/chamadas')
     } finally {
-      loading.value = false
+      pageLoading.value = false
     }
   }
 })

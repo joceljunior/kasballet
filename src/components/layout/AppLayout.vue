@@ -25,7 +25,7 @@
             :key="item.name"
             :to="item.to"
             class="text-gray-300 hover:bg-gray-700 hover:text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md"
-            :class="{ 'bg-gray-900 text-white': $route.name === item.name }"
+            :class="{ 'bg-gray-900 text-white': isNavActive(item) }"
           >
             <component :is="item.icon" class="mr-3 h-5 w-5" />
             {{ item.label }}
@@ -69,7 +69,7 @@
             :to="item.to"
             @click="mobileMenuOpen = false"
             class="text-gray-300 hover:bg-gray-700 hover:text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md"
-            :class="{ 'bg-gray-900 text-white': $route.name === item.name }"
+            :class="{ 'bg-gray-900 text-white': isNavActive(item) }"
           >
             <component :is="item.icon" class="mr-3 h-5 w-5" />
             {{ item.label }}
@@ -114,7 +114,7 @@
             :key="item.name"
             :to="item.to"
             class="flex flex-col items-center py-2 px-4 text-xs"
-            :class="$route.name === item.name ? 'text-green-600' : 'text-gray-500'"
+            :class="isNavActive(item) ? 'text-green-600' : 'text-gray-500'"
           >
             <component :is="item.icon" class="h-6 w-6 mb-1" />
             <span>{{ item.label }}</span>
@@ -128,7 +128,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useAuthStore } from '../../stores/auth'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import {
   HomeIcon,
   UserGroupIcon,
@@ -136,6 +136,8 @@ import {
   UserIcon,
   ClipboardDocumentListIcon,
   CurrencyDollarIcon,
+  ShoppingCartIcon,
+  CubeIcon,
   Bars3Icon,
   XMarkIcon,
   UserCircleIcon,
@@ -144,8 +146,26 @@ import {
 
 const authStore = useAuthStore()
 const router = useRouter()
+const route = useRoute()
 const mobileMenuOpen = ref(false)
 const userMenuOpen = ref(false)
+
+const navPrefixes = {
+  dashboard: '/dashboard',
+  alunos: '/alunos',
+  turmas: '/turmas',
+  professores: '/professores',
+  chamadas: '/chamadas',
+  vendas: '/vendas',
+  produtos: '/produtos',
+  financeiro: '/financeiro'
+}
+
+function isNavActive(item) {
+  if (route.name === item.name) return true
+  const prefix = navPrefixes[item.name]
+  return prefix ? route.path.startsWith(prefix) : false
+}
 
 const navigation = computed(() => {
   const baseNav = [
@@ -159,6 +179,8 @@ const navigation = computed(() => {
       { name: 'turmas', to: '/turmas', label: 'Turmas', icon: AcademicCapIcon },
       { name: 'professores', to: '/professores', label: 'Professoras', icon: UserIcon },
       { name: 'chamadas', to: '/chamadas', label: 'Chamadas', icon: ClipboardDocumentListIcon },
+      { name: 'produtos', to: '/produtos', label: 'Produtos', icon: CubeIcon },
+      { name: 'vendas', to: '/vendas', label: 'Vendas', icon: ShoppingCartIcon },
       { name: 'financeiro', to: '/financeiro', label: 'Financeiro', icon: CurrencyDollarIcon }
     ]
   } else {

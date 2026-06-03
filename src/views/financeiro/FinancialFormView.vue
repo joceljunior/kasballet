@@ -1,5 +1,8 @@
 <template>
   <div class="space-y-6 pb-20 md:pb-6">
+    <AppLoading v-if="pageLoading" card message="Carregando lançamento..." />
+
+    <template v-else>
     <h1 class="text-2xl font-bold text-gray-900">{{ isEdit ? 'Editar Lançamento' : 'Novo Lançamento' }}</h1>
 
     <form @submit.prevent="handleSubmit" class="card space-y-6">
@@ -37,26 +40,10 @@
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">Subtipo *</label>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Categoria *</label>
         <select v-model="form.subtype" required class="input md:max-w-xs">
           <option value="">Selecione</option>
-          <template v-if="form.type === 'entrada'">
-            <option value="mensalidade">Mensalidade</option>
-            <option value="pagamento_semestral">Pagamento Semestral</option>
-            <option value="pagamento_anual">Pagamento Anual</option>
-            <option value="rematricula">Rematrícula</option>
-            <option value="taxa_participacao">Taxa de Participação</option>
-            <option value="figurino">Figurino</option>
-            <option value="vendas">Vendas</option>
-            <option value="outros">Outros</option>
-          </template>
-          <template v-if="form.type === 'saida'">
-            <option value="pagamento">Pagamento</option>
-            <option value="contas">Contas</option>
-            <option value="compras">Compras</option>
-            <option value="impostos">Impostos</option>
-            <option value="outros">Outros</option>
-          </template>
+          <option v-for="s in formSubtypes" :key="s.value" :value="s.value">{{ s.label }}</option>
         </select>
       </div>
 
@@ -77,8 +64,7 @@
         </div>
       </div>
 
-      <!-- Mensalidade, Pag. Semestral, Pag. Anual, Rematrícula, Taxa, Figurino: obrigatório Aluna (uma linha por aluna) -->
-      <div v-if="form.type === 'entrada' && ['mensalidade', 'pagamento_semestral', 'pagamento_anual', 'rematricula', 'taxa_participacao', 'figurino'].includes(form.subtype)">
+      <div v-if="selectedCategory?.requiresStudent">
         <label class="block text-sm font-medium text-gray-700 mb-2">Aluna *</label>
         <div
           class="input md:max-w-md flex items-center justify-between gap-2 cursor-pointer"
@@ -141,14 +127,12 @@
         </div>
       </Teleport>
 
-      <!-- Vendas / Outros (entrada): obrigatório Descrição -->
-      <div v-if="form.type === 'entrada' && (form.subtype === 'vendas' || form.subtype === 'outros')">
+      <div v-if="selectedCategory?.requiresDescription">
         <label class="block text-sm font-medium text-gray-700 mb-2">Descrição *</label>
-        <input v-model="form.description" type="text" required class="input" placeholder="Ex: venda de collant" />
+        <input v-model="form.description" type="text" required class="input" placeholder="Descreva o lançamento" />
       </div>
 
-      <!-- Pagamento: obrigatório Professora -->
-      <div v-if="form.type === 'saida' && form.subtype === 'pagamento'">
+      <div v-if="selectedCategory?.requiresTeacher">
         <label class="block text-sm font-medium text-gray-700 mb-2">Professora *</label>
         <select v-model="form.teacherId" required class="input md:max-w-md">
           <option value="">Selecione a professora</option>
@@ -158,12 +142,6 @@
         </select>
       </div>
 
-      <!-- Contas, Compras, Impostos, Outros (saída): obrigatório Descrição -->
-      <div v-if="form.type === 'saida' && ['contas','compras','impostos','outros'].includes(form.subtype)">
-        <label class="block text-sm font-medium text-gray-700 mb-2">Descrição *</label>
-        <input v-model="form.description" type="text" required class="input" placeholder="Ex: conta de luz" />
-      </div>
-
       <div class="flex gap-4">
         <button type="submit" :disabled="loading" class="btn-primary disabled:opacity-50">
           {{ loading ? 'Salvando...' : 'Salvar' }}
@@ -171,6 +149,7 @@
         <router-link to="/financeiro/lancamentos" class="btn-secondary">Cancelar</router-link>
       </div>
     </form>
+    </template>
   </div>
 </template>
 
@@ -178,14 +157,19 @@
 import { ref, onMounted, computed, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useFinancialStore } from '../../stores/financial'
+import { useFinancialCategoryStore } from '../../stores/financialCategory'
 import { studentService, teacherService } from '../../services/index.js'
 import { toYYYYMMDDLocal } from '../../utils/date.js'
+import { categoryToOption, getBehaviorCode } from '../../utils/financialCategories.js'
 import { XMarkIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
+import AppLoading from '../../components/common/AppLoading.vue'
 
 const route = useRoute()
 const router = useRouter()
 const financialStore = useFinancialStore()
+const categoryStore = useFinancialCategoryStore()
 const loading = ref(false)
+const pageLoading = ref(true)
 const error = ref(null)
 const students = ref([])
 const teachers = ref([])
@@ -196,6 +180,20 @@ const studentFilterText = ref('')
 const studentFilterInputRef = ref(null)
 
 const isEdit = computed(() => !!route.params.id && route.params.id !== 'novo')
+const formSubtypes = computed(() => {
+  const options = categoryStore.optionsForType(form.value.type)
+  if (!form.value.subtype || options.some((o) => o.value === form.value.subtype)) return options
+  const current = categoryStore.getCategory(form.value.type, form.value.subtype)
+  if (current) {
+    return [{ ...categoryToOption(current), label: `${current.get('label')} (inativa)` }, ...options]
+  }
+  return [{ value: form.value.subtype, label: form.value.subtype }, ...options]
+})
+const selectedCategory = computed(() => {
+  if (!form.value.subtype) return null
+  const cat = categoryStore.getCategory(form.value.type, form.value.subtype)
+  return cat ? categoryToOption(cat) : null
+})
 
 const selectedStudentName = computed(() => {
   const s = students.value.find((x) => x.id === form.value.studentId)
@@ -248,9 +246,10 @@ watch(studentPopupOpen, async (open) => {
 })
 
 onMounted(async () => {
+  pageLoading.value = true
   try {
+    await categoryStore.load()
     if (isEdit.value) {
-      loading.value = true
       const e = await financialStore.getEntryById(route.params.id)
       const [s, t] = await Promise.all([
         studentService.getStudents(0, 500, { active: true }),
@@ -298,12 +297,12 @@ onMounted(async () => {
 
       if (route.query.studentId) {
         form.value.type = 'entrada'
-        form.value.subtype = 'mensalidade'
+        form.value.subtype = getBehaviorCode(categoryStore.categories, 'mensalidade') || 'mensalidade'
         form.value.studentId = route.query.studentId
       }
       if (route.query.teacherId) {
         form.value.type = 'saida'
-        form.value.subtype = 'pagamento'
+        form.value.subtype = getBehaviorCode(categoryStore.categories, 'pagamento_professora') || 'pagamento'
         form.value.teacherId = route.query.teacherId
       }
     }
@@ -311,54 +310,36 @@ onMounted(async () => {
     error.value = err?.message || 'Erro ao carregar'
     if (isEdit.value) router.push('/financeiro/lancamentos')
   } finally {
-    loading.value = false
+    pageLoading.value = false
   }
 })
 
 async function handleSubmit() {
   error.value = null
-  const subtypesRequiringStudent = ['mensalidade', 'pagamento_semestral', 'pagamento_anual', 'rematricula', 'taxa_participacao', 'figurino']
-  if (form.value.type === 'entrada' && subtypesRequiringStudent.includes(form.value.subtype) && !form.value.studentId) {
-    const subtypeLabels = {
-      mensalidade: 'mensalidade',
-      pagamento_semestral: 'pagamento semestral',
-      pagamento_anual: 'pagamento anual',
-      rematricula: 'rematrícula',
-      taxa_participacao: 'taxa de participação',
-      figurino: 'figurino'
-    }
-    error.value = `Selecione a aluna para ${subtypeLabels[form.value.subtype]}.`
+  const category = selectedCategory.value
+  if (!category) {
+    error.value = 'Selecione uma categoria.'
     return
   }
-  if (form.value.type === 'entrada' && ['vendas','outros'].includes(form.value.subtype) && !String(form.value.description || '').trim()) {
-    error.value = 'Descrição é obrigatória para vendas e outros (entrada).'
+  if (category.requiresStudent && !form.value.studentId) {
+    error.value = `Selecione a aluna para ${category.label.toLowerCase()}.`
     return
   }
-  if (form.value.type === 'saida' && form.value.subtype === 'pagamento' && !form.value.teacherId) {
-    error.value = 'Selecione a professora para pagamento.'
+  if (category.requiresDescription && !String(form.value.description || '').trim()) {
+    error.value = `Descrição é obrigatória para ${category.label.toLowerCase()}.`
     return
   }
-  if (form.value.type === 'saida' && ['contas','compras','impostos','outros'].includes(form.value.subtype) && !String(form.value.description || '').trim()) {
-    error.value = 'Descrição é obrigatória para contas, compras, impostos e outros (saída).'
+  if (category.requiresTeacher && !form.value.teacherId) {
+    error.value = 'Selecione a professora.'
     return
   }
 
   loading.value = true
   try {
-    // Gerar descrição automática para lançamentos vinculados a aluna
     let description = String(form.value.description || '').trim()
-    if (form.value.type === 'entrada' && subtypesRequiringStudent.includes(form.value.subtype) && form.value.studentId) {
+    if (category.requiresStudent && form.value.studentId) {
       const studentName = selectedStudentName.value || ''
-      const subtypeLabelsDesc = {
-        mensalidade: 'Mensalidade',
-        pagamento_semestral: 'Pagamento Semestral',
-        pagamento_anual: 'Pagamento Anual',
-        rematricula: 'Rematrícula',
-        taxa_participacao: 'Taxa de Participação',
-        figurino: 'Figurino'
-      }
-      const label = subtypeLabelsDesc[form.value.subtype] || form.value.subtype
-      description = `${label} - ${studentName}`
+      description = `${category.label} - ${studentName}`
     }
 
     const payload = {
@@ -369,8 +350,8 @@ async function handleSubmit() {
       dateReference: form.value.dateReference,
       value: Number(form.value.value) || 0,
       description,
-      studentId: (form.value.type === 'entrada' && subtypesRequiringStudent.includes(form.value.subtype)) ? form.value.studentId : null,
-      teacherId: (form.value.type === 'saida' && form.value.subtype === 'pagamento') ? form.value.teacherId : null
+      studentId: category.requiresStudent ? form.value.studentId : null,
+      teacherId: category.requiresTeacher ? form.value.teacherId : null
     }
     if (isEdit.value) {
       await financialStore.updateEntry(route.params.id, payload)

@@ -1,8 +1,6 @@
 <template>
   <div class="space-y-6 pb-20 md:pb-6">
-    <div v-if="loading && !register" class="card text-center py-12">
-      <p class="text-gray-600">Carregando...</p>
-    </div>
+    <AppLoading v-if="loading && !register" card message="Carregando chamada..." />
 
     <div v-else-if="register">
       <div class="flex flex-col md:flex-row md:items-center md:justify-between">
@@ -79,6 +77,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useRegisterStore } from '../../stores/register'
 import { crewService, studentService, userRepository } from '../../services/index.js'
 import { formatDateBR } from '../../utils/date.js'
+import AppLoading from '../../components/common/AppLoading.vue'
 
 const route = useRoute()
 const router = useRouter()

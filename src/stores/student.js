@@ -7,47 +7,50 @@ export const useStudentStore = defineStore('student', () => {
   const studentCrewsMap = ref({}) // studentId -> Crew[]
   const loading = ref(false)
   const error = ref(null)
-  const hasMore = ref(true)
   const currentPage = ref(0)
   const pageSize = ref(30)
+  const totalCount = ref(0)
   const filters = ref({})
   const searchQuery = ref('')
 
-  async function loadStudents(reset = false) {
-    if (reset) {
-      students.value = []
-      studentCrewsMap.value = {}
-      currentPage.value = 0
-      hasMore.value = true
-    }
-
-    if (!hasMore.value || loading.value) return
-
+  async function loadStudents() {
     loading.value = true
     error.value = null
 
     try {
-      const page = reset ? 0 : currentPage.value
-      
-      // Se o filtro é de pendentes, usar método específico
       let results
-      if (filters.value.pending) {
-        results = await studentService.getPendingStudents(page, pageSize.value)
+      let count
+
+      if (searchQuery.value.trim()) {
+        const query = searchQuery.value.trim()
+        ;[results, count] = await Promise.all([
+          studentService.searchStudents(query, currentPage.value, pageSize.value, filters.value),
+          studentService.countSearchStudents(query, filters.value)
+        ])
+      } else if (filters.value.pending) {
+        ;[results, count] = await Promise.all([
+          studentService.getPendingStudents(currentPage.value, pageSize.value),
+          studentService.countPendingStudents()
+        ])
       } else {
-        results = await studentService.getStudents(page, pageSize.value, filters.value)
-      }
-      
-      if (reset) {
-        students.value = results
-      } else {
-        students.value.push(...results)
+        ;[results, count] = await Promise.all([
+          studentService.getStudents(currentPage.value, pageSize.value, filters.value),
+          studentService.countStudents(filters.value)
+        ])
       }
 
-      const crewsMap = await studentService.getCrewsForStudents(results)
-      studentCrewsMap.value = reset ? crewsMap : { ...studentCrewsMap.value, ...crewsMap }
+      totalCount.value = count
 
-      hasMore.value = results.length === pageSize.value
-      currentPage.value = page + 1
+      const maxPage = Math.max(0, Math.ceil(count / pageSize.value) - 1)
+      if (currentPage.value > maxPage) {
+        currentPage.value = maxPage
+        if (count > 0) {
+          return loadStudents()
+        }
+      }
+
+      students.value = results
+      studentCrewsMap.value = await studentService.getCrewsForStudents(results)
     } catch (err) {
       error.value = err.message || 'Erro ao carregar alunos'
       throw err
@@ -56,31 +59,25 @@ export const useStudentStore = defineStore('student', () => {
     }
   }
 
-  async function loadMore() {
-    await loadStudents(false)
+  async function goToPage(page) {
+    const maxPage = Math.max(0, Math.ceil(totalCount.value / pageSize.value) - 1)
+    if (page < 0 || page > maxPage) return
+    currentPage.value = page
+    await loadStudents()
+  }
+
+  async function nextPage() {
+    await goToPage(currentPage.value + 1)
+  }
+
+  async function prevPage() {
+    await goToPage(currentPage.value - 1)
   }
 
   async function search(query) {
     searchQuery.value = query
-    if (query) {
-      loading.value = true
-      error.value = null
-      try {
-        // Passar filtros para a busca
-        const results = await studentService.searchStudents(query, 0, pageSize.value, filters.value)
-        students.value = results
-        studentCrewsMap.value = await studentService.getCrewsForStudents(results)
-        hasMore.value = false
-        currentPage.value = 0
-      } catch (err) {
-        error.value = err.message || 'Erro ao buscar alunos'
-        throw err
-      } finally {
-        loading.value = false
-      }
-    } else {
-      await loadStudents(true)
-    }
+    currentPage.value = 0
+    await loadStudents()
   }
 
   async function loadPendingStudents() {
@@ -90,6 +87,8 @@ export const useStudentStore = defineStore('student', () => {
     try {
       const results = await studentService.getPendingStudents(0, 100)
       students.value = results
+      totalCount.value = results.length
+      currentPage.value = 0
       studentCrewsMap.value = await studentService.getCrewsForStudents(results)
     } catch (err) {
       error.value = err.message || 'Erro ao carregar alunos pendentes'
@@ -124,6 +123,7 @@ export const useStudentStore = defineStore('student', () => {
     try {
       const newStudent = await studentService.createStudent(data, isPublicRegistration)
       students.value.unshift(newStudent)
+      totalCount.value += 1
       return newStudent
     } catch (err) {
       error.value = err.message || 'Erro ao criar aluno'
@@ -159,6 +159,7 @@ export const useStudentStore = defineStore('student', () => {
     try {
       await studentService.deleteStudent(id)
       students.value = students.value.filter(s => s.id !== id)
+      totalCount.value = Math.max(0, totalCount.value - 1)
     } catch (err) {
       error.value = err.message || 'Erro ao deletar aluno'
       throw err
@@ -169,12 +170,9 @@ export const useStudentStore = defineStore('student', () => {
 
   function setFilters(newFilters) {
     filters.value = { ...newFilters }
-    // Se há busca ativa, refazer a busca com os novos filtros
-    if (searchQuery.value) {
-      search(searchQuery.value)
-    } else {
-      loadStudents(true)
-    }
+    searchQuery.value = ''
+    currentPage.value = 0
+    return loadStudents()
   }
 
   function reset() {
@@ -182,8 +180,8 @@ export const useStudentStore = defineStore('student', () => {
     studentCrewsMap.value = {}
     loading.value = false
     error.value = null
-    hasMore.value = true
     currentPage.value = 0
+    totalCount.value = 0
     filters.value = {}
     searchQuery.value = ''
   }
@@ -193,13 +191,15 @@ export const useStudentStore = defineStore('student', () => {
     studentCrewsMap,
     loading,
     error,
-    hasMore,
     currentPage,
     pageSize,
+    totalCount,
     filters,
     searchQuery,
     loadStudents,
-    loadMore,
+    goToPage,
+    nextPage,
+    prevPage,
     search,
     loadPendingStudents,
     approveStudent,
