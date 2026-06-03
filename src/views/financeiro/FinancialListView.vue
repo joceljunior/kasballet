@@ -9,7 +9,7 @@
         <p class="text-gray-600 mt-1">Entradas e saídas</p>
       </div>
       <div class="flex flex-wrap gap-2 mt-4 md:mt-0">
-        <button type="button" class="btn-secondary" @click="monthCompareOpen = true">Mês x Mês</button>
+        <button type="button" class="btn-secondary" @click="monthCompareOpen = true">Comparativo</button>
         <router-link to="/financeiro" class="btn-secondary">Voltar</router-link>
         <router-link to="/financeiro/categorias" class="btn-secondary">Categorias</router-link>
         <router-link to="/financeiro/lancamentos/novo" class="btn-primary">Novo Lançamento</router-link>
