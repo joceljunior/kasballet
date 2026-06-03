@@ -9,7 +9,7 @@
         <p class="text-gray-600 mt-1">Visão geral – filtre por período ou veja os totais gerais</p>
       </div>
       <div class="flex gap-2 mt-4 md:mt-0">
-        <button type="button" class="btn-secondary" @click="monthCompareOpen = true">Comparativo</button>
+        <button type="button" class="btn-secondary" @click="monthCompareOpen = true">Mês x Mês</button>
         <router-link to="/financeiro/categorias" class="btn-secondary">Categorias</router-link>
         <router-link to="/financeiro/lancamentos" class="btn-secondary">Ver lançamentos</router-link>
         <router-link to="/financeiro/lancamentos/novo" class="btn-primary">Novo Lançamento</router-link>
