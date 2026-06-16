@@ -1,7 +1,8 @@
 import Parse from 'parse'
-import { studentRepository, studentCrewRepository, crewRepository, registerRepository, financialCategoryRepository, financialEntryRepository, paymentRepository, userRepository, productRepository, saleRepository } from '../repositories/index.js'
+import { studentRepository, studentCrewRepository, crewRepository, registerRepository, financialCategoryRepository, financialEntryRepository, paymentRepository, userRepository, itemCategoryRepository, productRepository, saleRepository } from '../repositories/index.js'
 import { parseDateForStorage } from '../utils/date.js'
 import { DEFAULT_FINANCIAL_CATEGORIES, slugifyCategoryCode } from '../utils/financialCategories.js'
+import { DEFAULT_ITEM_CATEGORIES, normalizeAttributeFields, validateAttributeValue } from '../utils/itemCategories.js'
 
 export class StudentService {
   constructor(repository) {
@@ -1279,9 +1280,156 @@ export class TeacherService {
   }
 }
 
+export class ItemCategoryService {
+  constructor(repository, productRepository) {
+    this.repository = repository
+    this.productRepository = productRepository
+  }
+
+  async ensureDefaults() {
+    try {
+      const count = await this.repository.countAll()
+      if (count > 0) return
+      for (const item of DEFAULT_ITEM_CATEGORIES) {
+        await this.repository.create({
+          ...item,
+          attributeFields: normalizeAttributeFields(item.attributeFields),
+          active: true
+        })
+      }
+    } catch (err) {
+      console.error('Erro ao criar categorias padrão:', err)
+    }
+  }
+
+  async getCategories(filters = {}) {
+    await this.ensureDefaults()
+    return this.repository.findCategories(200, 0, filters)
+  }
+
+  async getCategoryById(id) {
+    return this.repository.findById(id)
+  }
+
+  async createCategory(data) {
+    const label = String(data.label || '').trim()
+    if (!label) throw new Error('Informe o nome da categoria.')
+    if (!data.scope || !['produto', 'venda'].includes(data.scope)) {
+      throw new Error('Selecione o uso (produto ou venda).')
+    }
+
+    let code = slugifyCategoryCode(data.code || label)
+    if (!code) throw new Error('Não foi possível gerar um código para a categoria.')
+
+    const existing = await this.repository.findByCode(code, data.scope)
+    if (existing) {
+      let suffix = 2
+      while (await this.repository.findByCode(`${code}_${suffix}`, data.scope)) suffix++
+      code = `${code}_${suffix}`
+    }
+
+    return this.repository.create({
+      scope: data.scope,
+      code,
+      label,
+      attributeFields: normalizeAttributeFields(data.attributeFields),
+      active: data.active !== false,
+      sortOrder: Number(data.sortOrder) || 99
+    })
+  }
+
+  async updateCategory(id, data) {
+    await this.repository.findById(id)
+    const payload = {}
+
+    if (data.label !== undefined) {
+      const label = String(data.label || '').trim()
+      if (!label) throw new Error('Informe o nome da categoria.')
+      payload.label = label
+    }
+    if (data.attributeFields !== undefined) {
+      payload.attributeFields = normalizeAttributeFields(data.attributeFields)
+    }
+    if (data.active !== undefined) payload.active = !!data.active
+    if (data.sortOrder !== undefined) payload.sortOrder = Number(data.sortOrder) || 0
+
+    return this.repository.update(id, payload)
+  }
+
+  async deleteCategory(id) {
+    const category = await this.repository.findById(id)
+    const count = await this.productRepository.countByCategoryCode(category.get('code'))
+    if (count > 0) {
+      throw new Error('Existem produtos com esta categoria. Desative-a em vez de excluir.')
+    }
+    await this.repository.delete(id)
+  }
+}
+
 export class ProductService {
   constructor(repository) {
     this.repository = repository
+  }
+
+  _normalizeAttributes(attributes, categoryFields = []) {
+    const raw = attributes && typeof attributes === 'object' ? attributes : {}
+    const normalized = {}
+    const fields = normalizeAttributeFields(categoryFields)
+    for (const field of fields) {
+      const val = raw[field.key]
+      if (val == null || !String(val).trim()) continue
+      const check = validateAttributeValue(field.type, val)
+      if (!check.valid) throw new Error(`${field.label}: ${check.message}`)
+      normalized[field.key] = check.value
+    }
+    for (const [key, val] of Object.entries(raw)) {
+      if (normalized[key] != null) continue
+      if (val != null && String(val).trim()) normalized[key] = String(val).trim()
+    }
+    return normalized
+  }
+
+  _buildProductPayload(data, { partial = false } = {}) {
+    const payload = {}
+    if (!partial || data.name !== undefined) {
+      const name = String(data.name || '').trim()
+      if (!name) throw new Error('Nome do produto é obrigatório')
+      payload.name = name
+    }
+    if (!partial || data.price !== undefined) {
+      const price = Number(data.price) || 0
+      if (price < 0) throw new Error('Preço inválido')
+      payload.price = price
+    }
+    if (!partial || data.stockQuantity !== undefined) {
+      const stock = Number(data.stockQuantity) || 0
+      if (stock < 0) throw new Error('Quantidade em estoque inválida')
+      payload.stockQuantity = stock
+    }
+    if (!partial || data.categoryCode !== undefined || data.category !== undefined) {
+      const categoryCode = data.categoryCode != null
+        ? String(data.categoryCode).trim()
+        : data.category != null
+          ? String(data.category).trim()
+          : ''
+      payload.categoryCode = categoryCode
+      payload.category = categoryCode
+    }
+    if (!partial || data.description !== undefined) {
+      payload.description = data.description ? String(data.description).trim() : ''
+    }
+    if (!partial || data.active !== undefined) {
+      payload.active = data.active !== false
+    }
+    if (!partial || data.attributes !== undefined) {
+      payload.attributes = this._normalizeAttributes(data.attributes, data.categoryAttributeFields)
+    }
+    if (data.photo && typeof File !== 'undefined' && data.photo instanceof File) {
+      payload.photo = new Parse.File(data.photo.name, data.photo)
+    } else if (data.photo instanceof Parse.File && !data.photo.url()) {
+      payload.photo = data.photo
+    }
+    return payload
   }
 
   async getProducts(page = 0, pageSize = 100, filters = {}) {
@@ -1299,49 +1447,17 @@ export class ProductService {
     return this.repository.findById(id)
   }
 
+  async getProductsByGroup(name, categoryCode) {
+    return this.repository.findByNameAndCategory(name, categoryCode)
+  }
+
   async createProduct(data) {
-    const payload = {
-      name: String(data.name || '').trim(),
-      price: Number(data.price) || 0,
-      stockQuantity: Number(data.stockQuantity) || 0,
-      category: data.category ? String(data.category).trim() : '',
-      description: data.description ? String(data.description).trim() : '',
-      active: data.active !== false
-    }
-    if (!payload.name) throw new Error('Nome do produto é obrigatório')
-    if (payload.price < 0) throw new Error('Preço inválido')
-    if (payload.stockQuantity < 0) throw new Error('Quantidade em estoque inválida')
-    if (data.photo && typeof File !== 'undefined' && data.photo instanceof File) {
-      payload.photo = new Parse.File(data.photo.name, data.photo)
-    }
+    const payload = this._buildProductPayload(data)
     return this.repository.create(payload)
   }
 
   async updateProduct(id, data) {
-    const payload = {}
-    if (data.name !== undefined) {
-      const name = String(data.name).trim()
-      if (!name) throw new Error('Nome do produto é obrigatório')
-      payload.name = name
-    }
-    if (data.price !== undefined) {
-      const price = Number(data.price) || 0
-      if (price < 0) throw new Error('Preço inválido')
-      payload.price = price
-    }
-    if (data.stockQuantity !== undefined) {
-      const stock = Number(data.stockQuantity) || 0
-      if (stock < 0) throw new Error('Quantidade em estoque inválida')
-      payload.stockQuantity = stock
-    }
-    if (data.category !== undefined) payload.category = data.category ? String(data.category).trim() : ''
-    if (data.description !== undefined) payload.description = data.description ? String(data.description).trim() : ''
-    if (data.active !== undefined) payload.active = data.active !== false
-    if (data.photo && typeof File !== 'undefined' && data.photo instanceof File) {
-      payload.photo = new Parse.File(data.photo.name, data.photo)
-    } else if (data.photo instanceof Parse.File && !data.photo.url()) {
-      payload.photo = data.photo
-    }
+    const payload = this._buildProductPayload(data, { partial: true })
     if (Object.keys(payload).length === 0) return this.repository.findById(id)
     return this.repository.update(id, payload)
   }
@@ -1452,6 +1568,7 @@ export class SaleService {
 }
 
 // Export service instances
+export const itemCategoryService = new ItemCategoryService(itemCategoryRepository, productRepository)
 export const financialCategoryService = new FinancialCategoryService(financialCategoryRepository, financialEntryRepository)
 export const studentService = new StudentService(studentRepository)
 export const crewService = new CrewService(crewRepository)

@@ -65,7 +65,7 @@
                 :key="p.id"
                 :value="p.id"
               >
-                {{ p.get('name') }} — R$ {{ formatMoney(p.get('price')) }} ({{ p.get('stockQuantity') }} disp.)
+                {{ productDisplayName(p) }} — R$ {{ formatMoney(p.get('price')) }} ({{ p.get('stockQuantity') }} disp.)
               </option>
             </select>
           </div>
@@ -140,12 +140,15 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSaleStore } from '../../stores/sale'
+import { useItemCategoryStore } from '../../stores/itemCategory'
 import { productService } from '../../services/index.js'
+import { formatProductDisplayName } from '../../utils/itemCategories'
 import StudentFilterSelect from '../../components/common/StudentFilterSelect.vue'
 import AppLoading from '../../components/common/AppLoading.vue'
 
 const router = useRouter()
 const saleStore = useSaleStore()
+const categoryStore = useItemCategoryStore()
 const loading = ref(false)
 const loadingProducts = ref(false)
 const error = ref(null)
@@ -179,6 +182,12 @@ function getProductById(id) {
   return products.value.find((p) => p.id === id)
 }
 
+function productDisplayName(product) {
+  const code = product.get('categoryCode') || product.get('category')
+  const category = code ? categoryStore.getCategory(code, 'produto') : null
+  return formatProductDisplayName(product, category)
+}
+
 function addItem() {
   error.value = null
   const product = getProductById(selectedProductId.value)
@@ -200,7 +209,7 @@ function addItem() {
   } else {
     cart.value.push({
       productId: product.id,
-      productName: product.get('name'),
+      productName: productDisplayName(product),
       unitPrice: Number(product.get('price')) || 0,
       quantity: qty,
       maxStock: stock
@@ -257,6 +266,7 @@ async function handleSubmit() {
 onMounted(async () => {
   loadingProducts.value = true
   try {
+    await categoryStore.load()
     products.value = await productService.getProducts(0, 200, { active: true })
   } catch (_) {
   } finally {

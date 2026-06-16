@@ -3,9 +3,10 @@
     <div class="flex flex-col md:flex-row md:items-center md:justify-between">
       <div>
         <h1 class="text-2xl font-bold text-gray-900">Produtos</h1>
-        <p class="text-gray-600 mt-1">Sapatilhas, roupas, mochilas e demais itens</p>
+        <p class="text-gray-600 mt-1">Visualize o estoque agrupado por produto e tamanho</p>
       </div>
       <div class="flex flex-wrap gap-2 mt-4 md:mt-0">
+        <router-link to="/categorias" class="btn-secondary">Categorias</router-link>
         <router-link to="/produtos/novo" class="btn-primary">Novo Produto</router-link>
       </div>
     </div>
@@ -20,7 +21,7 @@
           <label class="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
           <select v-model="filterCategory" class="input" @change="applyFilters">
             <option value="">Todas</option>
-            <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
+            <option v-for="cat in categoryOptions" :key="cat.value" :value="cat.value">{{ cat.label }}</option>
           </select>
         </div>
         <div>
@@ -36,7 +37,7 @@
 
     <AppLoading v-if="productStore.loading && productStore.products.length === 0" card message="Carregando produtos..." />
 
-    <div v-else-if="productStore.products.length === 0" class="card text-center py-12">
+    <div v-else-if="productGroups.length === 0" class="card text-center py-12">
       <ShoppingBagIcon class="h-12 w-12 mx-auto text-gray-400" />
       <p class="mt-4 text-gray-600">Nenhum produto cadastrado</p>
       <router-link to="/produtos/novo" class="btn-primary mt-4 inline-block">Cadastrar produto</router-link>
@@ -44,72 +45,88 @@
 
     <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
       <div
-        v-for="product in productStore.products"
-        :key="product.id"
+        v-for="group in productGroups"
+        :key="group.key"
         class="card hover:shadow-lg transition-shadow cursor-pointer flex flex-col"
-        @click="$router.push(`/produtos/${product.id}/edit`)"
+        @click="openGroup(group)"
       >
         <div class="aspect-square bg-gray-100 rounded-lg overflow-hidden mb-3 flex items-center justify-center">
           <img
-            v-if="getPhotoUrl(product)"
-            :src="getPhotoUrl(product)"
-            :alt="product.get('name')"
+            v-if="getGroupPhotoUrl(group)"
+            :src="getGroupPhotoUrl(group)"
+            :alt="group.name"
             class="w-full h-full object-cover"
           />
           <ShoppingBagIcon v-else class="w-16 h-16 text-gray-300" />
         </div>
-        <h3 class="font-semibold text-gray-900 truncate">{{ product.get('name') }}</h3>
-        <p v-if="product.get('category')" class="text-xs text-gray-500 mt-0.5">{{ product.get('category') }}</p>
-        <p class="text-lg font-bold text-green-700 mt-2">R$ {{ formatMoney(product.get('price')) }}</p>
+        <h3 class="font-semibold text-gray-900 truncate">{{ group.name }}</h3>
+        <p v-if="group.categoryCode" class="text-xs text-gray-500 mt-0.5">{{ categoryLabel(group.categoryCode) }}</p>
+        <p class="text-lg font-bold text-green-700 mt-2">
+          <template v-if="group.minPrice === group.maxPrice">R$ {{ formatMoney(group.minPrice) }}</template>
+          <template v-else>R$ {{ formatMoney(group.minPrice) }} – {{ formatMoney(group.maxPrice) }}</template>
+        </p>
         <div class="flex items-center justify-between mt-2">
-          <span
-            class="inline-flex items-center gap-1 text-sm font-medium"
-            :class="getStockClass(product)"
-          >
+          <span class="inline-flex items-center gap-1 text-sm font-medium" :class="getGroupStockClass(group)">
             <CubeIcon class="w-4 h-4" />
-            {{ product.get('stockQuantity') ?? 0 }} em estoque
+            {{ group.totalStock }} em estoque
           </span>
-          <span
-            v-if="product.get('active') === false"
-            class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600"
-          >
-            Inativo
-          </span>
+          <span class="text-xs text-gray-500">{{ group.variantCount }} {{ group.variantCount === 1 ? 'tamanho' : 'tamanhos' }}</span>
         </div>
+        <span
+          v-if="group.hasInactive"
+          class="mt-2 self-start text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600"
+        >
+          Com variações inativas
+        </span>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useProductStore } from '../../stores/product'
+import { useItemCategoryStore } from '../../stores/itemCategory'
+import { groupProducts } from '../../utils/itemCategories'
 import { ShoppingBagIcon, CubeIcon } from '@heroicons/vue/24/outline'
 import AppLoading from '../../components/common/AppLoading.vue'
 
+const router = useRouter()
 const productStore = useProductStore()
+const categoryStore = useItemCategoryStore()
 const searchTerm = ref('')
 const filterCategory = ref('')
 const filterActive = ref('true')
 let searchTimeout = null
 
-const categories = ['Sapatilhas', 'Roupas', 'Mochilas', 'Acessórios', 'Outros']
+const categoryOptions = computed(() => categoryStore.optionsForScope('produto'))
+const productGroups = computed(() => groupProducts(productStore.products))
 
 function formatMoney(v) {
   const n = Number(v)
   return isNaN(n) ? '0,00' : n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
-function getPhotoUrl(product) {
-  const photo = product.get('photo')
-  return photo?.url?.() || null
+function categoryLabel(code) {
+  return categoryStore.labelFor(code, 'produto')
 }
 
-function getStockClass(product) {
-  const stock = Number(product.get('stockQuantity')) || 0
-  if (stock <= 0) return 'text-red-600'
-  if (stock <= 5) return 'text-amber-600'
+function getGroupPhotoUrl(group) {
+  return group.photo?.url?.() || null
+}
+
+function getGroupStockClass(group) {
+  if (group.totalStock <= 0) return 'text-red-600'
+  if (group.totalStock <= 5) return 'text-amber-600'
   return 'text-gray-600'
+}
+
+function openGroup(group) {
+  router.push({
+    path: '/produtos/grupo',
+    query: { nome: group.name, categoria: group.categoryCode }
+  })
 }
 
 function applyFilters() {
@@ -138,7 +155,8 @@ function handleSearch() {
   }, 300)
 }
 
-onMounted(() => {
+onMounted(async () => {
+  await categoryStore.load()
   applyFilters()
 })
 </script>

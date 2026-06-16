@@ -721,21 +721,64 @@ export class UserRepository extends BaseRepository {
   }
 }
 
+export class ItemCategoryRepository extends BaseRepository {
+  constructor() {
+    super('ItemCategory')
+  }
+
+  async findCategories(limit = 200, skip = 0, filters = {}) {
+    const query = new Parse.Query(this.ParseObject)
+    if (filters.scope) query.equalTo('scope', filters.scope)
+    if (filters.active === true) query.equalTo('active', true)
+    else if (filters.active === false) query.equalTo('active', false)
+    query.ascending('sortOrder')
+    query.addAscending('label')
+    query.limit(limit)
+    query.skip(skip)
+    return query.find()
+  }
+
+  async findByCode(code, scope = null) {
+    const query = new Parse.Query(this.ParseObject)
+    query.equalTo('code', code)
+    if (scope) query.equalTo('scope', scope)
+    return query.first()
+  }
+
+  async countAll() {
+    const query = new Parse.Query(this.ParseObject)
+    return query.count()
+  }
+}
+
 export class ProductRepository extends BaseRepository {
   constructor() {
     super('Product')
   }
 
-  /**
-   * Lista produtos com filtros opcionais (active, category). Ordem: name asc.
-   */
-  async findProducts(limit = 100, skip = 0, filters = {}) {
-    const query = new Parse.Query(this.ParseObject)
+  _applyProductFilters(query, filters = {}) {
     if (filters.active === true) query.equalTo('active', true)
     else if (filters.active === false) query.equalTo('active', false)
-    if (filters.category) query.equalTo('category', filters.category)
     if (filters.lowStock === true) {
       query.lessThanOrEqualTo('stockQuantity', 5)
+    }
+    return query
+  }
+
+  /**
+   * Lista produtos com filtros opcionais (active, category/categoryCode). Ordem: name asc.
+   */
+  async findProducts(limit = 100, skip = 0, filters = {}) {
+    let query = new Parse.Query(this.ParseObject)
+    this._applyProductFilters(query, filters)
+    if (filters.category) {
+      const byCode = new Parse.Query(this.ParseObject)
+      this._applyProductFilters(byCode, filters)
+      byCode.equalTo('categoryCode', filters.category)
+      const byLegacy = new Parse.Query(this.ParseObject)
+      this._applyProductFilters(byLegacy, filters)
+      byLegacy.equalTo('category', filters.category)
+      query = Parse.Query.or(byCode, byLegacy)
     }
     query.ascending('name')
     query.limit(limit)
@@ -746,11 +789,35 @@ export class ProductRepository extends BaseRepository {
   async searchByName(term, limit = 50, skip = 0, filters = {}) {
     const query = new Parse.Query(this.ParseObject)
     query.matches('name', new RegExp(term, 'i'))
-    if (filters.active === true) query.equalTo('active', true)
+    this._applyProductFilters(query, filters)
     query.ascending('name')
     query.limit(limit)
     query.skip(skip)
     return query.find()
+  }
+
+  async findByNameAndCategory(name, categoryCode, limit = 200) {
+    const trimmed = String(name || '').trim()
+    if (!trimmed) return []
+    const byCode = new Parse.Query(this.ParseObject)
+    byCode.equalTo('name', trimmed)
+    byCode.equalTo('categoryCode', categoryCode || '')
+    const byLegacy = new Parse.Query(this.ParseObject)
+    byLegacy.equalTo('name', trimmed)
+    byLegacy.equalTo('category', categoryCode || '')
+    const query = Parse.Query.or(byCode, byLegacy)
+    query.ascending('name')
+    query.limit(limit)
+    return query.find()
+  }
+
+  async countByCategoryCode(categoryCode) {
+    const byCode = new Parse.Query(this.ParseObject)
+    byCode.equalTo('categoryCode', categoryCode)
+    const byLegacy = new Parse.Query(this.ParseObject)
+    byLegacy.equalTo('category', categoryCode)
+    const query = Parse.Query.or(byCode, byLegacy)
+    return query.count()
   }
 }
 
@@ -790,5 +857,6 @@ export const financialCategoryRepository = new FinancialCategoryRepository()
 export const financialEntryRepository = new FinancialEntryRepository()
 export const paymentRepository = new PaymentRepository()
 export const userRepository = new UserRepository()
+export const itemCategoryRepository = new ItemCategoryRepository()
 export const productRepository = new ProductRepository()
 export const saleRepository = new SaleRepository()
