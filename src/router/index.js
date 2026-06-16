@@ -215,18 +215,6 @@ const router = createRouter({
       ]
     },
     {
-      path: '/categorias',
-      component: AppLayout,
-      meta: { requiresAuth: true, role: 'Master' },
-      children: [
-        {
-          path: '',
-          name: 'categorias',
-          component: () => import('../views/categorias/CategoryListView.vue')
-        }
-      ]
-    },
-    {
       path: '/produtos',
       component: AppLayout,
       meta: { requiresAuth: true, role: 'Master' },
@@ -235,6 +223,11 @@ const router = createRouter({
           path: '',
           name: 'produtos',
           component: () => import('../views/produtos/ProductListView.vue')
+        },
+        {
+          path: 'categorias',
+          name: 'produto-categorias',
+          component: () => import('../views/produtos/ProductCategoryListView.vue')
         },
         {
           path: 'grupo',

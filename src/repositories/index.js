@@ -728,7 +728,6 @@ export class ItemCategoryRepository extends BaseRepository {
 
   async findCategories(limit = 200, skip = 0, filters = {}) {
     const query = new Parse.Query(this.ParseObject)
-    if (filters.scope) query.equalTo('scope', filters.scope)
     if (filters.active === true) query.equalTo('active', true)
     else if (filters.active === false) query.equalTo('active', false)
     query.ascending('sortOrder')
@@ -738,10 +737,9 @@ export class ItemCategoryRepository extends BaseRepository {
     return query.find()
   }
 
-  async findByCode(code, scope = null) {
+  async findByCode(code) {
     const query = new Parse.Query(this.ParseObject)
     query.equalTo('code', code)
-    if (scope) query.equalTo('scope', scope)
     return query.first()
   }
 

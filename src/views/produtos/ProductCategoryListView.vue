@@ -5,68 +5,64 @@
     <template v-else>
       <div class="flex flex-col md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 class="text-2xl font-bold text-gray-900">Categorias</h1>
-          <p class="text-gray-600 mt-1">Configure categorias para produtos e vendas, com campos personalizados</p>
+          <router-link to="/produtos" class="text-sm text-green-600 hover:underline">← Voltar aos produtos</router-link>
+          <h1 class="text-2xl font-bold text-gray-900 mt-2">Categorias de produto</h1>
+          <p class="text-gray-600 mt-1">Configure categorias e os campos solicitados no cadastro</p>
         </div>
         <div class="flex gap-2 mt-4 md:mt-0">
           <button type="button" class="btn-primary" @click="openForm()">Nova categoria</button>
         </div>
       </div>
 
-      <template v-if="!categoryStore.loading">
-        <section v-for="section in sections" :key="section.scope" class="card">
-          <h2 class="text-lg font-semibold text-gray-900 mb-4">{{ section.title }}</h2>
-          <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-              <thead class="bg-gray-50">
-                <tr>
-                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome</th>
-                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Campos solicitados</th>
-                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                  <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Ações</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-gray-200">
-                <tr v-for="cat in section.items" :key="cat.id" class="hover:bg-gray-50">
-                  <td class="px-4 py-3 text-sm">
-                    <p class="font-medium text-gray-900">{{ cat.get('label') }}</p>
-                    <p class="text-xs text-gray-500">{{ cat.get('code') }}</p>
-                  </td>
-                  <td class="px-4 py-3 text-sm text-gray-600">
-                    <div v-if="getFields(cat).length" class="flex flex-wrap gap-1">
-                      <span
-                        v-for="field in getFields(cat)"
-                        :key="field.key"
-                        class="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800"
-                      >
-                        {{ field.label }} ({{ fieldTypeLabel(field.type) }})
-                      </span>
-                    </div>
-                    <span v-else class="text-xs text-gray-400">Nenhum campo configurado</span>
-                  </td>
-                  <td class="px-4 py-3 text-sm">
-                    <span
-                      :class="cat.get('active') !== false ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700'"
-                      class="px-2 py-0.5 text-xs font-medium rounded-full"
-                    >
-                      {{ cat.get('active') !== false ? 'Ativa' : 'Inativa' }}
-                    </span>
-                  </td>
-                  <td class="px-4 py-3 text-sm text-right whitespace-nowrap">
-                    <button type="button" class="text-green-600 hover:underline mr-3" @click="openForm(cat)">Editar</button>
-                    <button type="button" class="text-red-600 hover:underline" @click="toDelete = cat">Excluir</button>
-                  </td>
-                </tr>
-                <tr v-if="section.items.length === 0">
-                  <td colspan="4" class="px-4 py-6 text-sm text-gray-500 text-center">Nenhuma categoria cadastrada.</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
-      </template>
+      <div v-if="!categoryStore.loading" class="card overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Campos solicitados</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+              <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Ações</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200">
+            <tr v-for="cat in categoryStore.categories" :key="cat.id" class="hover:bg-gray-50">
+              <td class="px-4 py-3 text-sm">
+                <p class="font-medium text-gray-900">{{ cat.get('label') }}</p>
+                <p class="text-xs text-gray-500">{{ cat.get('code') }}</p>
+              </td>
+              <td class="px-4 py-3 text-sm text-gray-600">
+                <div v-if="getFields(cat).length" class="flex flex-wrap gap-1">
+                  <span
+                    v-for="field in getFields(cat)"
+                    :key="field.key"
+                    class="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800"
+                  >
+                    {{ field.label }} ({{ fieldTypeLabel(field.type) }})
+                  </span>
+                </div>
+                <span v-else class="text-xs text-gray-400">Nenhum campo configurado</span>
+              </td>
+              <td class="px-4 py-3 text-sm">
+                <span
+                  :class="cat.get('active') !== false ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700'"
+                  class="px-2 py-0.5 text-xs font-medium rounded-full"
+                >
+                  {{ cat.get('active') !== false ? 'Ativa' : 'Inativa' }}
+                </span>
+              </td>
+              <td class="px-4 py-3 text-sm text-right whitespace-nowrap">
+                <button type="button" class="text-green-600 hover:underline mr-3" @click="openForm(cat)">Editar</button>
+                <button type="button" class="text-red-600 hover:underline" @click="toDelete = cat">Excluir</button>
+              </td>
+            </tr>
+            <tr v-if="categoryStore.categories.length === 0">
+              <td colspan="4" class="px-4 py-6 text-sm text-gray-500 text-center">Nenhuma categoria cadastrada.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
-      <AppLoading v-else-if="categoryStore.loading" card message="Atualizando categorias..." />
+      <AppLoading v-else card message="Atualizando categorias..." />
     </template>
 
     <div v-if="formOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" @click.self="closeForm">
@@ -76,18 +72,9 @@
           {{ formError }}
         </div>
         <form class="space-y-4" @submit.prevent="saveForm">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Uso *</label>
-              <select v-model="form.scope" :disabled="!!editing" required class="input disabled:bg-gray-100">
-                <option value="produto">Produto</option>
-                <option value="venda">Venda</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Nome *</label>
-              <input v-model="form.label" type="text" required class="input" placeholder="Ex: Roupas" />
-            </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Nome *</label>
+            <input v-model="form.label" type="text" required class="input" placeholder="Ex: Roupas" />
           </div>
 
           <div>
@@ -163,7 +150,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useItemCategoryStore } from '../../stores/itemCategory'
 import { normalizeAttributeFields } from '../../utils/itemCategories'
 import AppLoading from '../../components/common/AppLoading.vue'
@@ -177,25 +164,11 @@ const formError = ref(null)
 const toDelete = ref(null)
 
 const form = ref({
-  scope: 'produto',
   label: '',
   attributeFields: [],
   sortOrder: 99,
   active: true
 })
-
-const sections = computed(() => [
-  {
-    scope: 'produto',
-    title: 'Produtos',
-    items: categoryStore.categories.filter((c) => c.get('scope') === 'produto')
-  },
-  {
-    scope: 'venda',
-    title: 'Vendas',
-    items: categoryStore.categories.filter((c) => c.get('scope') === 'venda')
-  }
-])
 
 function fieldTypeLabel(type) {
   if (type === 'numeric') return 'numérico'
@@ -239,7 +212,6 @@ function openForm(category = null) {
   formError.value = null
   if (category) {
     form.value = {
-      scope: category.get('scope'),
       label: category.get('label') || '',
       attributeFields: fieldsToForm(category.get('attributeFields')),
       sortOrder: category.get('sortOrder') ?? 99,
@@ -247,7 +219,6 @@ function openForm(category = null) {
     }
   } else {
     form.value = {
-      scope: 'produto',
       label: '',
       attributeFields: [],
       sortOrder: 99,
@@ -268,7 +239,6 @@ async function saveForm() {
   saving.value = true
   try {
     const payload = {
-      scope: form.value.scope,
       label: form.value.label,
       attributeFields: formToFields(form.value.attributeFields),
       sortOrder: form.value.sortOrder,

@@ -3,7 +3,6 @@ import { slugifyCategoryCode } from './financialCategories.js'
 /** Categorias padrão — seed inicial no Back4App. */
 export const DEFAULT_ITEM_CATEGORIES = [
   {
-    scope: 'produto',
     code: 'roupas',
     label: 'Roupas',
     attributeFields: [
@@ -12,7 +11,6 @@ export const DEFAULT_ITEM_CATEGORIES = [
     sortOrder: 1
   },
   {
-    scope: 'produto',
     code: 'calcados',
     label: 'Calçados',
     attributeFields: [
@@ -21,18 +19,10 @@ export const DEFAULT_ITEM_CATEGORIES = [
     sortOrder: 2
   },
   {
-    scope: 'produto',
     code: 'acessorios',
     label: 'Acessórios',
     attributeFields: [],
     sortOrder: 3
-  },
-  {
-    scope: 'venda',
-    code: 'loja',
-    label: 'Loja',
-    attributeFields: [],
-    sortOrder: 10
   }
 ]
 
@@ -66,27 +56,24 @@ export function categoryToOption(category) {
   return {
     value: category.get('code'),
     label: category.get('label'),
-    scope: category.get('scope'),
     attributeFields: normalizeAttributeFields(category.get('attributeFields'))
   }
 }
 
-export function getCategoriesForScope(categories, scope, { activeOnly = true } = {}) {
+export function getCategoryOptions(categories, { activeOnly = true } = {}) {
   return categories
-    .filter((c) => c.get('scope') === scope && (!activeOnly || isItemCategoryActive(c)))
+    .filter((c) => !activeOnly || isItemCategoryActive(c))
     .sort((a, b) => (a.get('sortOrder') || 0) - (b.get('sortOrder') || 0) || String(a.get('label')).localeCompare(String(b.get('label'))))
     .map(categoryToOption)
 }
 
-export function findCategoryByCode(categories, code, scope = null) {
+export function findCategoryByCode(categories, code) {
   if (!code) return null
-  const matches = categories.filter((c) => c.get('code') === code)
-  if (scope) return matches.find((c) => c.get('scope') === scope) || null
-  return matches[0] || null
+  return categories.find((c) => c.get('code') === code) || null
 }
 
-export function getCategoryLabel(categories, code, scope = null) {
-  const cat = findCategoryByCode(categories, code, scope)
+export function getCategoryLabel(categories, code) {
+  const cat = findCategoryByCode(categories, code)
   return cat?.get('label') || code || '—'
 }
 

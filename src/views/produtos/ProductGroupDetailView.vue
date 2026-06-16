@@ -111,7 +111,7 @@ const variants = ref([])
 const groupName = computed(() => String(route.query.nome || ''))
 const categoryCode = computed(() => String(route.query.categoria || ''))
 
-const category = computed(() => categoryStore.getCategory(categoryCode.value, 'produto'))
+const category = computed(() => categoryStore.getCategory(categoryCode.value))
 const categoryLabel = computed(() => category.value?.get('label') || categoryCode.value || '')
 const attributeFields = computed(() => normalizeAttributeFields(category.value?.get('attributeFields')))
 

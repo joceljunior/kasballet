@@ -138,7 +138,6 @@ import {
   CurrencyDollarIcon,
   ShoppingCartIcon,
   CubeIcon,
-  TagIcon,
   Bars3Icon,
   XMarkIcon,
   UserCircleIcon,
@@ -159,7 +158,6 @@ const navPrefixes = {
   chamadas: '/chamadas',
   vendas: '/vendas',
   produtos: '/produtos',
-  categorias: '/categorias',
   financeiro: '/financeiro'
 }
 
@@ -182,7 +180,6 @@ const navigation = computed(() => {
       { name: 'professores', to: '/professores', label: 'Professoras', icon: UserIcon },
       { name: 'chamadas', to: '/chamadas', label: 'Chamadas', icon: ClipboardDocumentListIcon },
       { name: 'produtos', to: '/produtos', label: 'Produtos', icon: CubeIcon },
-      { name: 'categorias', to: '/categorias', label: 'Categorias', icon: TagIcon },
       { name: 'vendas', to: '/vendas', label: 'Vendas', icon: ShoppingCartIcon },
       { name: 'financeiro', to: '/financeiro', label: 'Financeiro', icon: CurrencyDollarIcon }
     ]

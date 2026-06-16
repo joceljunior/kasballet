@@ -1314,22 +1314,18 @@ export class ItemCategoryService {
   async createCategory(data) {
     const label = String(data.label || '').trim()
     if (!label) throw new Error('Informe o nome da categoria.')
-    if (!data.scope || !['produto', 'venda'].includes(data.scope)) {
-      throw new Error('Selecione o uso (produto ou venda).')
-    }
 
     let code = slugifyCategoryCode(data.code || label)
     if (!code) throw new Error('Não foi possível gerar um código para a categoria.')
 
-    const existing = await this.repository.findByCode(code, data.scope)
+    const existing = await this.repository.findByCode(code)
     if (existing) {
       let suffix = 2
-      while (await this.repository.findByCode(`${code}_${suffix}`, data.scope)) suffix++
+      while (await this.repository.findByCode(`${code}_${suffix}`)) suffix++
       code = `${code}_${suffix}`
     }
 
     return this.repository.create({
-      scope: data.scope,
       code,
       label,
       attributeFields: normalizeAttributeFields(data.attributeFields),

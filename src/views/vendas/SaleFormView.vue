@@ -201,7 +201,7 @@ function getProductById(id) {
 
 function productDisplayName(product) {
   const code = product.get('categoryCode') || product.get('category')
-  const category = code ? categoryStore.getCategory(code, 'produto') : null
+  const category = code ? categoryStore.getCategory(code) : null
   return formatProductDisplayName(product, category)
 }
 

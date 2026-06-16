@@ -125,10 +125,10 @@ const photoPreview = ref(null)
 const currentPhotoUrl = ref(null)
 
 const isEdit = computed(() => !!route.params.id && route.params.id !== 'novo')
-const categoryOptions = computed(() => categoryStore.optionsForScope('produto'))
+const categoryOptions = computed(() => categoryStore.options())
 
 const selectedCategory = computed(() =>
-  form.value.categoryCode ? categoryStore.getCategoryOption(form.value.categoryCode, 'produto') : null
+  form.value.categoryCode ? categoryStore.getCategoryOption(form.value.categoryCode) : null
 )
 const selectedCategoryFields = computed(() => selectedCategory.value?.attributeFields || [])
 

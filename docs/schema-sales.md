@@ -9,13 +9,12 @@
 
 ## ItemCategory
 
-Categorias configuráveis em módulo separado (`/categorias`). Cada categoria define o **uso** (produto ou venda) e quais **informações são solicitadas** ao cadastrar itens — campos opcionais, mas exibidos no formulário.
+Categorias de produto configuráveis em `/produtos/categorias`. Cada categoria define quais **informações são solicitadas** ao cadastrar produtos — campos opcionais, mas exibidos no formulário.
 
 | Campo            | Tipo     | Obrigatório | Descrição                                              |
 |------------------|----------|-------------|--------------------------------------------------------|
 | code             | String   | Sim         | Identificador estável (slug)                           |
 | label            | String   | Sim         | Nome exibido (ex: Roupas, Calçados)                    |
-| scope            | String   | Sim         | `produto` ou `venda`                                   |
 | attributeFields  | Array    | Não         | Campos solicitados (ver estrutura abaixo)              |
 | active           | Boolean  | Sim         | Default `true`                                         |
 | sortOrder        | Number   | Não         | Ordem de exibição                                      |
@@ -42,7 +41,7 @@ Tipos de campo: `alphanumeric` (P, M, G), `numeric` (28, 32, 48), `text`.
 | name            | String     | Sim         | Nome base do produto (ex: Collant)             |
 | price           | Number     | Sim         | Preço de venda (R$)                            |
 | stockQuantity   | Number     | Sim         | Quantidade em estoque                          |
-| categoryCode    | String     | Não         | Código da ItemCategory (scope produto)         |
+| categoryCode    | String     | Não         | Código da ItemCategory                         |
 | category        | String     | Não         | Legado — mantido em sync com categoryCode       |
 | attributes      | Object     | Não         | Valores dos campos da categoria (ex: tamanho)  |
 | description     | String     | Não         | Detalhes do produto                            |
@@ -110,7 +109,7 @@ Produtos com o **mesmo nome** e **mesma categoria** são variações (ex: Collan
 - `/produtos/grupo?nome=...&categoria=...` — estoque por tamanho
 - `/produtos/novo` — cadastrar produto/variação
 - `/produtos/:id/edit` — editar produto
-- `/categorias` — categorias de produto e venda
+- `/produtos/categorias` — categorias de produto
 
 ## Back4App: criar as classes
 

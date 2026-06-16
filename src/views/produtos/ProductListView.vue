@@ -6,7 +6,7 @@
         <p class="text-gray-600 mt-1">Visualize o estoque agrupado por produto e tamanho</p>
       </div>
       <div class="flex flex-wrap gap-2 mt-4 md:mt-0">
-        <router-link to="/categorias" class="btn-secondary">Categorias</router-link>
+        <router-link to="/produtos/categorias" class="btn-secondary">Categorias</router-link>
         <router-link to="/produtos/novo" class="btn-primary">Novo Produto</router-link>
       </div>
     </div>
@@ -100,7 +100,7 @@ const filterCategory = ref('')
 const filterActive = ref('true')
 let searchTimeout = null
 
-const categoryOptions = computed(() => categoryStore.optionsForScope('produto'))
+const categoryOptions = computed(() => categoryStore.options())
 const productGroups = computed(() => groupProducts(productStore.products))
 
 function formatMoney(v) {
@@ -109,7 +109,7 @@ function formatMoney(v) {
 }
 
 function categoryLabel(code) {
-  return categoryStore.labelFor(code, 'produto')
+  return categoryStore.labelFor(code)
 }
 
 function getGroupPhotoUrl(group) {

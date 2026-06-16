@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { itemCategoryService } from '../services/index.js'
 import {
-  getCategoriesForScope,
+  getCategoryOptions,
   getCategoryLabel,
   findCategoryByCode,
   isItemCategoryActive,
@@ -33,20 +33,20 @@ export const useItemCategoryStore = defineStore('itemCategory', () => {
     }
   }
 
-  function optionsForScope(scope, { activeOnly = true } = {}) {
-    return getCategoriesForScope(categories.value, scope, { activeOnly })
+  function options({ activeOnly = true } = {}) {
+    return getCategoryOptions(categories.value, { activeOnly })
   }
 
-  function labelFor(code, scope = null) {
-    return getCategoryLabel(categories.value, code, scope)
+  function labelFor(code) {
+    return getCategoryLabel(categories.value, code)
   }
 
-  function getCategory(code, scope = null) {
-    return findCategoryByCode(categories.value, code, scope)
+  function getCategory(code) {
+    return findCategoryByCode(categories.value, code)
   }
 
-  function getCategoryOption(code, scope = 'produto') {
-    const cat = getCategory(code, scope)
+  function getCategoryOption(code) {
+    const cat = getCategory(code)
     return cat ? categoryToOption(cat) : null
   }
 
@@ -74,7 +74,7 @@ export const useItemCategoryStore = defineStore('itemCategory', () => {
     loaded,
     error,
     load,
-    optionsForScope,
+    options,
     labelFor,
     getCategory,
     getCategoryOption,
