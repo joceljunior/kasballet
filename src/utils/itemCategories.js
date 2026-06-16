@@ -83,6 +83,17 @@ export function getProductGroupKey(product) {
   return `${category}::${name}`
 }
 
+export function matchesProductCategory(product, categoryCode, categoryLabel = null) {
+  const code = String(product.get('categoryCode') || '').trim()
+  const legacy = String(product.get('category') || '').trim()
+  const targets = [...new Set([categoryCode, categoryLabel]
+    .filter(Boolean)
+    .map((v) => String(v).trim().toLowerCase()))]
+  if (targets.length === 0) return true
+  const values = [code, legacy].filter(Boolean).map((v) => v.toLowerCase())
+  return values.some((v) => targets.includes(v))
+}
+
 export function groupProducts(products) {
   const map = new Map()
   for (const product of products) {

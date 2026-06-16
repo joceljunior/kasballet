@@ -2,7 +2,7 @@ import Parse from 'parse'
 import { studentRepository, studentCrewRepository, crewRepository, registerRepository, financialCategoryRepository, financialEntryRepository, paymentRepository, userRepository, itemCategoryRepository, productRepository, saleRepository } from '../repositories/index.js'
 import { parseDateForStorage } from '../utils/date.js'
 import { DEFAULT_FINANCIAL_CATEGORIES, slugifyCategoryCode } from '../utils/financialCategories.js'
-import { DEFAULT_ITEM_CATEGORIES, normalizeAttributeFields, validateAttributeValue } from '../utils/itemCategories.js'
+import { DEFAULT_ITEM_CATEGORIES, normalizeAttributeFields, validateAttributeValue, matchesProductCategory } from '../utils/itemCategories.js'
 
 export class StudentService {
   constructor(repository) {
@@ -1467,8 +1467,13 @@ export class ProductService {
     return this.repository.findById(id)
   }
 
-  async getProductsByGroup(name, categoryCode) {
-    return this.repository.findByNameAndCategory(name, categoryCode)
+  async countProducts(filters = {}) {
+    return this.repository.countProducts(filters)
+  }
+
+  async getProductsByGroup(name, categoryCode, categoryLabel = null) {
+    const products = await this.repository.findByName(name)
+    return products.filter((p) => matchesProductCategory(p, categoryCode, categoryLabel))
   }
 
   async createProduct(data) {

@@ -810,19 +810,35 @@ export class ProductRepository extends BaseRepository {
     return query.find()
   }
 
-  async findByNameAndCategory(name, categoryCode, limit = 200) {
+  async findByName(name, limit = 200) {
     const trimmed = String(name || '').trim()
     if (!trimmed) return []
-    const byCode = new Parse.Query(this.ParseObject)
-    byCode.equalTo('name', trimmed)
-    byCode.equalTo('categoryCode', categoryCode || '')
-    const byLegacy = new Parse.Query(this.ParseObject)
-    byLegacy.equalTo('name', trimmed)
-    byLegacy.equalTo('category', categoryCode || '')
-    const query = Parse.Query.or(byCode, byLegacy)
+    const query = new Parse.Query(this.ParseObject)
+    query.equalTo('name', trimmed)
     query.ascending('name')
     query.limit(limit)
     return query.find()
+  }
+
+  async countProducts(filters = {}) {
+    let query = new Parse.Query(this.ParseObject)
+    this._applyProductFilters(query, filters)
+    if (filters.category) {
+      try {
+        const byCode = new Parse.Query(this.ParseObject)
+        this._applyProductFilters(byCode, filters)
+        byCode.equalTo('categoryCode', filters.category)
+        const byLegacy = new Parse.Query(this.ParseObject)
+        this._applyProductFilters(byLegacy, filters)
+        byLegacy.equalTo('category', filters.category)
+        query = Parse.Query.or(byCode, byLegacy)
+      } catch (_) {
+        query = new Parse.Query(this.ParseObject)
+        this._applyProductFilters(query, filters)
+        query.equalTo('category', filters.category)
+      }
+    }
+    return query.count()
   }
 
   async hasProductsInCategory(categoryCode, categoryLabel) {
