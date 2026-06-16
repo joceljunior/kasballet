@@ -89,3 +89,33 @@ Parse.Cloud.define('deleteTeacher', async (request) => {
   await u.destroy({ useMasterKey: true })
   return { ok: true }
 })
+
+Parse.Cloud.define('deleteItemCategory', async (request) => {
+  const user = request.user
+  if (!user || user.get('Role') !== 'Master') {
+    throw new Error('Apenas Master pode excluir categorias.')
+  }
+  const { categoryId } = request.params
+  if (!categoryId) throw new Error('categoryId é obrigatório.')
+
+  const category = await new Parse.Query('ItemCategory').get(categoryId, { useMasterKey: true })
+  const code = category.get('code')
+  const label = category.get('label')
+
+  async function hasProducts(field, value) {
+    if (!value) return false
+    const q = new Parse.Query('Product')
+    q.equalTo(field, value)
+    return (await q.limit(1).count({ useMasterKey: true })) > 0
+  }
+
+  if (code && (await hasProducts('categoryCode', code) || await hasProducts('category', code))) {
+    throw new Error('Existem produtos com esta categoria. Desative-a em vez de excluir.')
+  }
+  if (label && label !== code && await hasProducts('category', label)) {
+    throw new Error('Existem produtos com esta categoria. Desative-a em vez de excluir.')
+  }
+
+  await category.destroy({ useMasterKey: true })
+  return { ok: true }
+})

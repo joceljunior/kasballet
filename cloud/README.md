@@ -14,8 +14,12 @@ Para **criar** e **atualizar** professoras (_User com Role `Professora`), o app 
   - Cria um `_User` com `Role: 'Professora'`.  
   - Apenas usuários com `Role: 'Master'` podem chamar.
 
-- **updateTeacher** `({ userId, email?, password? })`  
-  - Atualiza `email` e/ou `password` de uma Professora.  
+- **deleteTeacher** `({ userId })`  
+  - Exclui Professora e zera `teacherId` nas turmas.  
+  - Apenas Master pode chamar.
+
+- **deleteItemCategory** `({ categoryId })`  
+  - Exclui categoria de produto se não houver produtos vinculados.  
   - Apenas Master pode chamar.
 
 ## Observação

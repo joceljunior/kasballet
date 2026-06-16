@@ -1354,11 +1354,35 @@ export class ItemCategoryService {
 
   async deleteCategory(id) {
     const category = await this.repository.findById(id)
-    const count = await this.productRepository.countByCategoryCode(category.get('code'))
-    if (count > 0) {
+    const code = category.get('code')
+    const label = category.get('label')
+    if (await this.productRepository.hasProductsInCategory(code, label)) {
       throw new Error('Existem produtos com esta categoria. Desative-a em vez de excluir.')
     }
-    await this.repository.delete(id)
+
+    try {
+      await this.repository.delete(id)
+    } catch (err) {
+      const message = String(err?.message || '')
+      const permissionDenied =
+        message.toLowerCase().includes('permission') ||
+        message.toLowerCase().includes('unauthorized') ||
+        err?.code === 119
+
+      if (!permissionDenied) {
+        throw new Error(message || 'Erro ao excluir categoria.')
+      }
+
+      try {
+        await Parse.Cloud.run('deleteItemCategory', { categoryId: id })
+      } catch (cloudErr) {
+        const cloudMsg = String(cloudErr?.message || '')
+        if (cloudMsg.includes('Invalid function') || cloudMsg.toLowerCase().includes('not found')) {
+          throw new Error('Não foi possível excluir. Atualize o Cloud Code (deleteItemCategory) no Back4App.')
+        }
+        throw cloudErr
+      }
+    }
   }
 }
 

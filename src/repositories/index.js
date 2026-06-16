@@ -726,6 +726,22 @@ export class ItemCategoryRepository extends BaseRepository {
     super('ItemCategory')
   }
 
+  async create(data) {
+    const object = new this.ParseObject()
+    Object.keys(data).forEach((key) => {
+      if (data[key] !== undefined && data[key] !== null) {
+        object.set(key, data[key])
+      }
+    })
+    const user = Parse.User.current()
+    if (user) {
+      const acl = new Parse.ACL(user)
+      acl.setPublicReadAccess(true)
+      object.setACL(acl)
+    }
+    return object.save()
+  }
+
   async findCategories(limit = 200, skip = 0, filters = {}) {
     const query = new Parse.Query(this.ParseObject)
     if (filters.active === true) query.equalTo('active', true)
@@ -809,13 +825,26 @@ export class ProductRepository extends BaseRepository {
     return query.find()
   }
 
-  async countByCategoryCode(categoryCode) {
-    const byCode = new Parse.Query(this.ParseObject)
-    byCode.equalTo('categoryCode', categoryCode)
-    const byLegacy = new Parse.Query(this.ParseObject)
-    byLegacy.equalTo('category', categoryCode)
-    const query = Parse.Query.or(byCode, byLegacy)
-    return query.count()
+  async hasProductsInCategory(categoryCode, categoryLabel) {
+    async function hasMatch(field, value) {
+      if (!value) return false
+      try {
+        const query = new Parse.Query(this.ParseObject)
+        query.equalTo(field, value)
+        return (await query.limit(1).count()) > 0
+      } catch (_) {
+        return false
+      }
+    }
+
+    if (categoryCode) {
+      if (await hasMatch.call(this, 'categoryCode', categoryCode)) return true
+      if (await hasMatch.call(this, 'category', categoryCode)) return true
+    }
+    if (categoryLabel && categoryLabel !== categoryCode) {
+      if (await hasMatch.call(this, 'category', categoryLabel)) return true
+    }
+    return false
   }
 }
 

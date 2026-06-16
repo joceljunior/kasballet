@@ -137,12 +137,15 @@
       </div>
     </div>
 
-    <div v-if="toDelete" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" @click.self="toDelete = null">
+    <div v-if="toDelete" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" @click.self="closeDelete">
       <div class="bg-white rounded-lg shadow-xl max-w-sm w-full p-6">
         <p class="text-gray-700">Excluir a categoria <strong>{{ toDelete.get('label') }}</strong>?</p>
+        <p v-if="deleteError" class="mt-3 text-sm text-red-600">{{ deleteError }}</p>
         <div class="flex gap-3 mt-6">
-          <button type="button" class="btn-primary flex-1" @click="doDelete">Excluir</button>
-          <button type="button" class="btn-secondary flex-1" @click="toDelete = null">Cancelar</button>
+          <button type="button" class="btn-primary flex-1 disabled:opacity-50" :disabled="deleting" @click="doDelete">
+            {{ deleting ? 'Excluindo...' : 'Excluir' }}
+          </button>
+          <button type="button" class="btn-secondary flex-1" :disabled="deleting" @click="closeDelete">Cancelar</button>
         </div>
       </div>
     </div>
@@ -162,6 +165,8 @@ const editing = ref(null)
 const saving = ref(false)
 const formError = ref(null)
 const toDelete = ref(null)
+const deleteError = ref(null)
+const deleting = ref(false)
 
 const form = ref({
   label: '',
@@ -259,13 +264,21 @@ async function saveForm() {
 
 async function doDelete() {
   if (!toDelete.value) return
+  deleting.value = true
+  deleteError.value = null
   try {
     await categoryStore.deleteCategory(toDelete.value.id)
-    toDelete.value = null
+    closeDelete()
   } catch (err) {
-    formError.value = err?.message || 'Erro ao excluir categoria'
-    toDelete.value = null
+    deleteError.value = err?.message || 'Erro ao excluir categoria'
+  } finally {
+    deleting.value = false
   }
+}
+
+function closeDelete() {
+  toDelete.value = null
+  deleteError.value = null
 }
 
 onMounted(async () => {
