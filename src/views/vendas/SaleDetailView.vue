@@ -16,6 +16,12 @@
           <span class="inline-block mt-2 text-xs text-green-700 bg-green-50 px-3 py-1 rounded-full">
             Entrada registrada no financeiro
           </span>
+          <div class="flex flex-wrap justify-end gap-2 mt-4">
+            <router-link :to="`/vendas/${sale.id}/edit`" class="btn-secondary text-sm">Editar</router-link>
+            <button type="button" class="btn-secondary text-sm text-red-600 border-red-200 hover:bg-red-50" @click="confirmDelete = true">
+              Excluir
+            </button>
+          </div>
         </div>
       </div>
 
@@ -64,6 +70,22 @@
         </div>
       </div>
     </template>
+
+    <div v-if="confirmDelete" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" @click.self="confirmDelete = false">
+      <div class="bg-white rounded-lg shadow-xl max-w-sm w-full p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-2">Excluir venda?</h3>
+        <p class="text-sm text-gray-600">
+          O estoque dos produtos será devolvido e o lançamento financeiro será removido. Esta ação não pode ser desfeita.
+        </p>
+        <p v-if="deleteError" class="mt-3 text-sm text-red-600">{{ deleteError }}</p>
+        <div class="flex gap-3 mt-6">
+          <button type="button" class="btn-primary flex-1 bg-red-600 hover:bg-red-700" :disabled="deleting" @click="doDelete">
+            {{ deleting ? 'Excluindo...' : 'Excluir' }}
+          </button>
+          <button type="button" class="btn-secondary flex-1" @click="confirmDelete = false">Cancelar</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -81,6 +103,9 @@ const saleStore = useSaleStore()
 const sale = ref(null)
 const loading = ref(true)
 const studentName = ref('')
+const confirmDelete = ref(false)
+const deleting = ref(false)
+const deleteError = ref(null)
 
 const items = computed(() => sale.value?.get('items') || [])
 
@@ -97,6 +122,20 @@ function formatMoney(v) {
 
 function formatDate(d) {
   return formatDateBR(d) || '—'
+}
+
+async function doDelete() {
+  if (!sale.value) return
+  deleting.value = true
+  deleteError.value = null
+  try {
+    await saleStore.deleteSale(sale.value.id)
+    router.push('/vendas')
+  } catch (err) {
+    deleteError.value = err.message || 'Erro ao excluir venda'
+  } finally {
+    deleting.value = false
+  }
 }
 
 onMounted(async () => {

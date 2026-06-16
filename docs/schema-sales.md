@@ -95,10 +95,16 @@ Produtos com o **mesmo nome** e **mesma categoria** são variações (ex: Collan
 4. Atualiza `FinancialEntry.saleId`
 5. Decrementa `Product.stockQuantity` de cada item
 
+## Edição e exclusão
+
+- **Editar** (`/vendas/:id/edit`): devolve o estoque anterior, valida o novo carrinho, atualiza a venda e o `FinancialEntry` vinculado.
+- **Excluir**: devolve o estoque de todos os itens e remove a venda e o lançamento financeiro.
+
 ## Rotas (apenas Master)
 
 - `/vendas` — listagem de vendas
 - `/vendas/nova` — registrar nova venda
+- `/vendas/:id/edit` — editar venda
 - `/vendas/:id` — detalhes da venda
 - `/produtos` — listagem agrupada por produto
 - `/produtos/grupo?nome=...&categoria=...` — estoque por tamanho

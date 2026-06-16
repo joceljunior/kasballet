@@ -1483,14 +1483,33 @@ export class SaleService {
     return this.repository.findById(id)
   }
 
-  /**
-   * Registra venda, baixa estoque e cria lançamento financeiro (entrada/vendas).
-   */
-  async createSale(data) {
-    const user = Parse.User.current()
-    const items = Array.isArray(data.items) ? data.items : []
-    if (!items.length) throw new Error('Adicione ao menos um produto à venda')
+  _buildSaleItems(items, productMap) {
+    return items.map((item) => {
+      const product = productMap[item.productId]
+      const unitPrice = item.unitPrice != null ? Number(item.unitPrice) : Number(product.get('price')) || 0
+      const quantity = Number(item.quantity) || 0
+      const productName = item.productName || product.get('name')
+      return {
+        productId: item.productId,
+        productName,
+        quantity,
+        unitPrice,
+        lineTotal: unitPrice * quantity
+      }
+    })
+  }
 
+  _buildSaleDescription(saleItems, data) {
+    const itemsDescription = saleItems.map((i) => `${i.quantity}x ${i.productName}`).join(', ')
+    const customerLabel = data.customerName ? String(data.customerName).trim() : ''
+    let description = itemsDescription
+    if (customerLabel) description = `Venda para ${customerLabel}: ${itemsDescription}`
+    if (data.notes) description = `${description} — ${String(data.notes).trim()}`
+    return description
+  }
+
+  async _validateSaleItems(items) {
+    if (!items.length) throw new Error('Adicione ao menos um produto à venda')
     const productMap = {}
     for (const item of items) {
       const productId = item.productId
@@ -1506,29 +1525,33 @@ export class SaleService {
         throw new Error(`Estoque insuficiente para "${product.get('name')}" (disponível: ${stock})`)
       }
     }
+    return productMap
+  }
 
-    const saleItems = items.map((item) => {
-      const product = productMap[item.productId]
-      const unitPrice = item.unitPrice != null ? Number(item.unitPrice) : Number(product.get('price')) || 0
-      const quantity = Number(item.quantity) || 0
-      return {
-        productId: item.productId,
-        productName: product.get('name'),
-        quantity,
-        unitPrice,
-        lineTotal: unitPrice * quantity
-      }
-    })
+  async _applyStockChanges(saleItems, direction) {
+    const factor = direction === 'restore' ? 1 : -1
+    for (const item of saleItems) {
+      const product = await this.productRepository.findById(item.productId)
+      const current = Number(product.get('stockQuantity')) || 0
+      const next = current + factor * (Number(item.quantity) || 0)
+      await this.productRepository.update(item.productId, { stockQuantity: next })
+    }
+  }
+
+  /**
+   * Registra venda, baixa estoque e cria lançamento financeiro (entrada/vendas).
+   */
+  async createSale(data) {
+    const user = Parse.User.current()
+    const items = Array.isArray(data.items) ? data.items : []
+    const productMap = await this._validateSaleItems(items)
+    const saleItems = this._buildSaleItems(items, productMap)
 
     const totalValue = saleItems.reduce((sum, i) => sum + i.lineTotal, 0)
     if (totalValue <= 0) throw new Error('Valor total da venda deve ser maior que zero')
 
     const date = data.date instanceof Date ? data.date : parseDateForStorage(data.date || new Date())
-    const itemsDescription = saleItems.map((i) => `${i.quantity}x ${i.productName}`).join(', ')
-    const customerLabel = data.customerName ? String(data.customerName).trim() : ''
-    let description = itemsDescription
-    if (customerLabel) description = `Venda para ${customerLabel}: ${itemsDescription}`
-    if (data.notes) description = `${description} — ${String(data.notes).trim()}`
+    const description = this._buildSaleDescription(saleItems, data)
 
     const financialEntry = await this.financialRepository.create({
       type: 'entrada',
@@ -1547,7 +1570,7 @@ export class SaleService {
       date,
       totalValue,
       items: saleItems,
-      customerName: customerLabel,
+      customerName: data.customerName ? String(data.customerName).trim() : '',
       studentId: data.studentId || null,
       notes: data.notes ? String(data.notes).trim() : '',
       financialEntryId: financialEntry.id,
@@ -1556,14 +1579,68 @@ export class SaleService {
     })
 
     await this.financialRepository.update(financialEntry.id, { saleId: sale.id })
+    await this._applyStockChanges(saleItems, 'deduct')
+    return sale
+  }
 
-    for (const item of saleItems) {
-      const product = productMap[item.productId]
-      const newStock = (Number(product.get('stockQuantity')) || 0) - item.quantity
-      await this.productRepository.update(item.productId, { stockQuantity: newStock })
+  /**
+   * Atualiza venda, ajusta estoque e sincroniza lançamento financeiro.
+   */
+  async updateSale(id, data) {
+    const sale = await this.repository.findById(id)
+    const oldItems = sale.get('items') || []
+    await this._applyStockChanges(oldItems, 'restore')
+
+    const items = Array.isArray(data.items) ? data.items : []
+    const productMap = await this._validateSaleItems(items)
+    const saleItems = this._buildSaleItems(items, productMap)
+
+    const totalValue = saleItems.reduce((sum, i) => sum + i.lineTotal, 0)
+    if (totalValue <= 0) throw new Error('Valor total da venda deve ser maior que zero')
+
+    const date = data.date instanceof Date ? data.date : parseDateForStorage(data.date || sale.get('date'))
+    const description = this._buildSaleDescription(saleItems, data)
+
+    const updated = await this.repository.update(id, {
+      date,
+      totalValue,
+      items: saleItems,
+      customerName: data.customerName != null ? String(data.customerName).trim() : sale.get('customerName') || '',
+      studentId: data.studentId !== undefined ? (data.studentId || null) : sale.get('studentId') || null,
+      notes: data.notes != null ? String(data.notes).trim() : sale.get('notes') || ''
+    })
+
+    const financialEntryId = sale.get('financialEntryId')
+    if (financialEntryId) {
+      await this.financialRepository.update(financialEntryId, {
+        date,
+        dateReference: date,
+        value: totalValue,
+        description,
+        studentId: data.studentId !== undefined ? (data.studentId || null) : sale.get('studentId') || null
+      })
     }
 
-    return sale
+    await this._applyStockChanges(saleItems, 'deduct')
+    return updated
+  }
+
+  /**
+   * Exclui venda, devolve estoque e remove lançamento financeiro.
+   */
+  async deleteSale(id) {
+    const sale = await this.repository.findById(id)
+    const items = sale.get('items') || []
+    await this._applyStockChanges(items, 'restore')
+
+    const financialEntryId = sale.get('financialEntryId')
+    if (financialEntryId) {
+      try {
+        await this.financialRepository.delete(financialEntryId)
+      } catch (_) {}
+    }
+
+    await this.repository.delete(id)
   }
 }
 

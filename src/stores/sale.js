@@ -54,6 +54,36 @@ export const useSaleStore = defineStore('sale', () => {
     }
   }
 
+  async function updateSale(id, data) {
+    loading.value = true
+    error.value = null
+    try {
+      const updated = await saleService.updateSale(id, data)
+      const index = sales.value.findIndex((s) => s.id === id)
+      if (index !== -1) sales.value[index] = updated
+      return updated
+    } catch (err) {
+      error.value = err.message || 'Erro ao atualizar venda'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function deleteSale(id) {
+    loading.value = true
+    error.value = null
+    try {
+      await saleService.deleteSale(id)
+      sales.value = sales.value.filter((s) => s.id !== id)
+    } catch (err) {
+      error.value = err.message || 'Erro ao excluir venda'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     sales,
     loading,
@@ -62,6 +92,8 @@ export const useSaleStore = defineStore('sale', () => {
     loadSales,
     setFilters,
     getSaleById,
-    createSale
+    createSale,
+    updateSale,
+    deleteSale
   }
 })

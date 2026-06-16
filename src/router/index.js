@@ -203,6 +203,11 @@ const router = createRouter({
           component: () => import('../views/vendas/SaleFormView.vue')
         },
         {
+          path: ':id/edit',
+          name: 'venda-editar',
+          component: () => import('../views/vendas/SaleFormView.vue')
+        },
+        {
           path: ':id',
           name: 'venda-detalhes',
           component: () => import('../views/vendas/SaleDetailView.vue')
