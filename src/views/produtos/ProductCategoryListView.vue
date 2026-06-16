@@ -86,7 +86,7 @@
               Campos exibidos ao cadastrar produtos desta categoria. Não são obrigatórios, mas serão pedidos.
             </p>
             <div v-if="form.attributeFields.length === 0" class="text-sm text-gray-400 border border-dashed rounded-lg p-4 text-center">
-              Nenhum campo. Ex: Tamanho alfanumérico (P, M, G) ou numérico (28, 32, 48).
+              Nenhum campo. Ex: Tamanho texto livre (P, M, G, 10/12) ou numérico (28, 32, 48).
             </div>
             <div v-for="(field, index) in form.attributeFields" :key="index" class="border rounded-lg p-4 mb-3 space-y-3">
               <div class="flex items-start justify-between gap-2">
@@ -101,7 +101,7 @@
                 <div>
                   <label class="block text-xs font-medium text-gray-600 mb-1">Tipo *</label>
                   <select v-model="field.type" class="input">
-                    <option value="alphanumeric">Alfanumérico (P, M, G, 10/12)</option>
+                    <option value="alphanumeric">Texto livre (P, M, G, 10/12, 10)</option>
                     <option value="numeric">Numérico (28, 32, 48)</option>
                     <option value="text">Texto livre</option>
                   </select>
@@ -172,7 +172,7 @@ const form = ref({
 
 function fieldTypeLabel(type) {
   if (type === 'numeric') return 'numérico'
-  if (type === 'alphanumeric') return 'alfanumérico'
+  if (type === 'alphanumeric') return 'texto livre'
   return 'texto'
 }
 

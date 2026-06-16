@@ -155,11 +155,5 @@ export function validateAttributeValue(type, value) {
     }
     return { valid: true, value: str.replace(',', '.') }
   }
-  if (type === 'alphanumeric') {
-    if (!/^[a-zA-Z0-9\s\-\/]+$/.test(str)) {
-      return { valid: false, message: 'Use apenas letras e números (ex: P, M, G, 10/12).' }
-    }
-    return { valid: true, value: str }
-  }
   return { valid: true, value: str }
 }

@@ -32,7 +32,7 @@ Categorias de produto configuráveis em `/produtos/categorias`. Cada categoria d
 ]
 ```
 
-Tipos de campo: `alphanumeric` (P, M, G), `numeric` (28, 32, 48), `text`.
+Tipos de campo: `alphanumeric` (texto livre — P, M, G, 10/12), `numeric` (28, 32, 48), `text`.
 
 ## Product
 

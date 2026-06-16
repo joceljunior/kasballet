@@ -144,8 +144,7 @@ const form = ref({
 
 function fieldPlaceholder(field) {
   if (field.type === 'numeric') return 'Ex: 32, 48'
-  if (field.type === 'alphanumeric') return 'Ex: P, M, G'
-  return ''
+  return 'Ex: P, M, G, 10/12, 10'
 }
 
 function onCategoryChange() {
