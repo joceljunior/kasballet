@@ -108,7 +108,7 @@ function applyFilters() {
 onMounted(async () => {
   applyFilters()
   try {
-    const students = await studentService.getStudents(0, 500, { active: true })
+    const students = await studentService.getStudents(0, 500, { active: true }, ['name'])
     const map = {}
     for (const s of students) map[s.id] = s
     studentMap.value = map

@@ -81,7 +81,14 @@
             </tbody>
           </table>
         </div>
-        <router-link :to="{ path: '/financeiro/lancamentos/novo', query: { teacherId: teacher.id } }" class="inline-block mt-3 text-sm text-green-600 hover:underline">+ Lançar pagamento</router-link>
+        <div class="flex flex-wrap gap-2 mt-4">
+          <router-link :to="{ path: '/financeiro/lancamentos', query: { teacherId: teacher.id } }" class="btn-secondary">
+            Ver lançamentos
+          </router-link>
+          <router-link :to="{ path: '/financeiro/lancamentos/novo', query: { teacherId: teacher.id } }" class="btn-primary">
+            Novo lançamento
+          </router-link>
+        </div>
       </div>
     </div>
   </div>

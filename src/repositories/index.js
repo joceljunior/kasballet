@@ -8,32 +8,37 @@ export class StudentRepository extends BaseRepository {
   }
 
   /**
-   * Find pending students (active: false AND inactive: false ou undefined)
-   * Alunos pendentes são aqueles que ainda não foram aprovados nem inativados
+   * Aplica select (só os campos necessários) quando informado.
    */
-  async findPending(limit = 30, skip = 0) {
+  _applyFields(query, fields) {
+    if (Array.isArray(fields) && fields.length) query.select(...fields)
+    return query
+  }
+
+  /**
+   * Monta a query de pendentes (active: false e inactive diferente de true).
+   * notEqualTo também considera registros onde "inactive" não existe.
+   */
+  _buildPendingQuery() {
+    const query = new Parse.Query(this.ParseObject)
+    query.equalTo('active', false)
+    query.notEqualTo('inactive', true)
+    return query
+  }
+
+  /**
+   * Find pending students (active: false AND inactive: false ou undefined)
+   * Alunos pendentes são aqueles que ainda não foram aprovados nem inativados.
+   * Filtro, ordenação e paginação são feitos no servidor.
+   */
+  async findPending(limit = 30, skip = 0, fields = null) {
     try {
-      // Buscar todos os alunos com active: false
-      const query = new Parse.Query(this.ParseObject)
-      query.equalTo('active', false)
-      query.limit(10000) // Buscar todos para filtrar
-      const students = await query.find()
-      
-      // Filtrar no código: apenas os que não têm inactive: true
-      const pending = students.filter(s => {
-        const inactive = s.get('inactive')
-        return inactive !== true
-      })
-      
-      // Ordenar por nome
-      pending.sort((a, b) => {
-        const nameA = a.get('name') || ''
-        const nameB = b.get('name') || ''
-        return nameA.localeCompare(nameB)
-      })
-      
-      // Aplicar paginação
-      return pending.slice(skip, skip + limit)
+      const query = this._buildPendingQuery()
+      query.ascending('name')
+      query.limit(limit)
+      query.skip(skip)
+      this._applyFields(query, fields)
+      return await query.find()
     } catch (error) {
       console.error('Error finding pending students:', error)
       return []
@@ -60,22 +65,9 @@ export class StudentRepository extends BaseRepository {
    */
   async countPending() {
     try {
-      // Buscar todos os alunos com active: false
-      const query = new Parse.Query(this.ParseObject)
-      query.equalTo('active', false)
-      query.limit(10000) // Buscar todos para filtrar
-      const students = await query.find()
-      
-      // Filtrar no código: contar apenas os que não têm inactive: true
-      const pending = students.filter(s => {
-        const inactive = s.get('inactive')
-        return inactive !== true
-      })
-      
-      return pending.length
+      return await this._buildPendingQuery().count()
     } catch (error) {
       console.error('Error counting pending students:', error)
-      // Fallback: retornar 0 se houver erro
       return 0
     }
   }
@@ -86,10 +78,10 @@ export class StudentRepository extends BaseRepository {
    * Se filters.pending for true, busca apenas pendentes
    * Se filters.inactive for true, busca apenas inativos
    */
-  async findActive(limit = 30, skip = 0, filters = {}) {
+  async findActive(limit = 30, skip = 0, filters = {}, fields = null) {
     // Se filtro de pendentes, usar lógica específica
     if (filters.pending) {
-      return this.findPending(limit, skip)
+      return this.findPending(limit, skip, fields)
     }
     
     // Se filtro de inativos
@@ -100,6 +92,7 @@ export class StudentRepository extends BaseRepository {
       query.ascending('name')
       query.limit(limit)
       query.skip(skip)
+      this._applyFields(query, fields)
       return query.find()
     }
     
@@ -114,6 +107,7 @@ export class StudentRepository extends BaseRepository {
     query.ascending('name')
     query.limit(limit)
     query.skip(skip)
+    this._applyFields(query, fields)
     return query.find()
   }
 
@@ -142,6 +136,10 @@ export class StudentRepository extends BaseRepository {
   }
 
   _applySearchFilters(query, filters = {}) {
+    if (filters.pending) {
+      query.equalTo('active', false)
+      query.notEqualTo('inactive', true)
+    }
     if (filters.inactive) {
       query.equalTo('active', false)
       query.equalTo('inactive', true)
@@ -153,52 +151,40 @@ export class StudentRepository extends BaseRepository {
     })
   }
 
-  _dedupeStudentsById(results) {
-    const uniqueResults = []
-    const seenIds = new Set()
-    for (const result of results) {
-      if (!seenIds.has(result.id)) {
-        seenIds.add(result.id)
-        uniqueResults.push(result)
-      }
-    }
-    uniqueResults.sort((a, b) => {
-      const nameA = a.get('name') || ''
-      const nameB = b.get('name') || ''
-      return nameA.localeCompare(nameB, 'pt-BR')
-    })
-    return uniqueResults
-  }
-
   /**
-   * Busca todos os alunos que correspondem ao termo (nome ou CPF), sem paginar.
+   * Monta a query de busca por nome (parcial, case-insensitive) ou CPF (exato).
    */
-  async searchAll(query, filters = {}) {
+  _buildSearchQuery(term, filters = {}) {
+    const escaped = String(term).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     const nameQuery = new Parse.Query(this.ParseObject)
-    nameQuery.matches('name', new RegExp(query, 'i'))
+    nameQuery.matches('name', new RegExp(escaped, 'i'))
     this._applySearchFilters(nameQuery, filters)
 
     const cpfQuery = new Parse.Query(this.ParseObject)
-    cpfQuery.equalTo('cpf', query)
+    cpfQuery.equalTo('cpf', term)
     this._applySearchFilters(cpfQuery, filters)
 
-    const [nameResults, cpfResults] = await Promise.all([
-      nameQuery.ascending('name').limit(10000).find(),
-      cpfQuery.ascending('name').limit(10000).find()
-    ])
-
-    return this._dedupeStudentsById([...nameResults, ...cpfResults])
+    return Parse.Query.or(nameQuery, cpfQuery)
   }
 
   /**
-   * Search students by name or CPF
-   * Aceita filtros opcionais (ex: active)
-   * Busca case-insensitive usando regex para nome
-   * Nota: filtro 'pending' é tratado no serviço, não aqui
+   * Search students by name or CPF (paginado no servidor).
+   * Aceita filtros opcionais (active, inactive, pending) e fields (select).
    */
-  async search(query, limit = 30, skip = 0, filters = {}) {
-    const allResults = await this.searchAll(query, filters)
-    return allResults.slice(skip, skip + limit)
+  async search(term, limit = 30, skip = 0, filters = {}, fields = null) {
+    const query = this._buildSearchQuery(term, filters)
+    query.ascending('name')
+    query.limit(limit)
+    query.skip(skip)
+    this._applyFields(query, fields)
+    return query.find()
+  }
+
+  /**
+   * Conta os resultados da busca (sem trazer os registros).
+   */
+  async countSearch(term, filters = {}) {
+    return this._buildSearchQuery(term, filters).count()
   }
 
   /**
@@ -228,6 +214,7 @@ export class StudentCrewRepository {
     try {
       const q = new Parse.Query('StudentCrews')
       q.containedIn('studentId', ids)
+      q.select('studentId', 'crewId')
       q.limit(5000)
       const rows = await q.find()
 
@@ -239,6 +226,7 @@ export class StudentCrewRepository {
       const Crew = Parse.Object.extend('Crew')
       const crewQuery = new Parse.Query(Crew)
       crewQuery.containedIn('objectId', crewIds)
+      crewQuery.select('Name', 'Key')
       const crews = await crewQuery.find()
       const crewMap = {}
       for (const crew of crews) {
@@ -325,7 +313,7 @@ export class StudentCrewRepository {
    * Busca alunos vinculados a uma turma específica.
    * Retorna apenas alunos ativos (active: true).
    */
-  async findByCrew(crewId) {
+  async findByCrew(crewId, fields = null) {
     if (!crewId) return []
     try {
       const q = new Parse.Query('StudentCrews')
@@ -343,6 +331,7 @@ export class StudentCrewRepository {
       studentQuery.containedIn('objectId', studentIds)
       studentQuery.equalTo('active', true) // Filtrar apenas alunos ativos
       studentQuery.ascending('name')
+      if (Array.isArray(fields) && fields.length) studentQuery.select(...fields)
       const students = await studentQuery.find()
       return students
     } catch (error) {
@@ -543,12 +532,13 @@ export class FinancialEntryRepository extends BaseRepository {
    * Find entries com filtros: type, subtype, status, dateFrom, dateTo, studentId, teacherId. Ordem: date desc.
    * status: "pendente" | "efetivado" (opcional)
    */
-  async findEntries(limit = 100, skip = 0, filters = {}) {
+  async findEntries(limit = 100, skip = 0, filters = {}, fields = null) {
     const query = this._buildEntriesQuery(filters)
     query.addDescending('date')
     query.addDescending('createdAt')
     query.limit(limit)
     query.skip(skip)
+    if (Array.isArray(fields) && fields.length) query.select(...fields)
     return query.find()
   }
 

@@ -10,14 +10,14 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
             </svg>
           </div>
-          <h2 class="text-3xl font-bold text-gray-900 mb-4">Cadastro Realizado!</h2>
+          <h2 class="text-3xl font-bold text-gray-900 mb-4">Matrícula efetuada com sucesso!</h2>
           <p class="text-lg text-gray-600 mb-3">Obrigado por se cadastrar no Kasballet!</p>
-          <p class="text-gray-500 mb-6">Seu cadastro está pendente de aprovação.<br>Entraremos em contato em breve.</p>
-          <div class="inline-flex items-center gap-2 bg-green-50 text-green-700 px-4 py-2 rounded-full text-sm">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
-            Aguarde nosso contato
+          <div
+            v-if="partialNotice"
+            class="max-w-md mx-auto mt-4 bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg text-sm text-left"
+          >
+            <p>{{ partialNotice.message }}</p>
+            <p class="mt-1 text-xs text-amber-700">Código de referência: {{ partialNotice.reference }}</p>
           </div>
         </div>
 
@@ -25,12 +25,28 @@
         <template v-else>
           <div class="text-center mb-8">
             <h1 class="text-3xl font-bold text-gray-900 mb-2">Cadastro de Aluno</h1>
-            <p class="text-gray-600">Preencha os dados abaixo. Seu cadastro ficará pendente até aprovação.</p>
+            <p class="text-gray-600">Preencha os dados abaixo para efetuar a matrícula.</p>
           </div>
 
           <form @submit.prevent="handleSubmit" class="space-y-8">
-            <div v-if="error" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-              {{ error }}
+            <div
+              v-if="error"
+              ref="errorBoxRef"
+              role="alert"
+              class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg space-y-1"
+            >
+              <p class="font-semibold">{{ error.title }}</p>
+              <p>{{ error.message }}</p>
+              <template v-if="error.kind === 'system'">
+                <p class="text-xs text-red-600">Detalhe técnico: {{ error.technical }}</p>
+                <p class="text-xs text-red-600">Código de referência: {{ error.reference }}</p>
+                <p v-if="error.reported" class="text-xs text-red-600">Nossa equipe foi avisada automaticamente sobre este erro.</p>
+                <p v-else-if="error.reporting" class="text-xs text-red-600">Avisando a equipe...</p>
+                <p v-else class="text-xs text-red-600">
+                  Não conseguimos avisar a equipe automaticamente. Envie o código de referência para
+                  <a :href="`mailto:${supportEmail}?subject=Erro no cadastro ${error.reference}`" class="underline">{{ supportEmail }}</a>.
+                </p>
+              </template>
             </div>
 
             <!-- Foto da aluna -->
@@ -222,6 +238,10 @@
                 <div>
                   <p class="text-xs text-gray-500 mb-2">Selecione uma ou mais turmas.</p>
                   <AppLoading v-if="loadingCrews" size="sm" inline message="Carregando turmas..." />
+                  <div v-else-if="crewsError" class="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                    Não foi possível carregar as turmas. {{ crewsError }}
+                    <button type="button" class="underline ml-1" @click="loadCrews">Tentar novamente</button>
+                  </div>
                   <div v-else class="flex flex-wrap gap-3">
                     <label
                       v-for="c in crews"
@@ -281,31 +301,55 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import { studentService, crewService } from '../../services/index.js'
 import Parse from '../../services/parse.js'
+import { notifyRegistrationSuccess, reportRegistrationError } from '../../services/notifications.js'
+import {
+  SUPPORT_EMAIL,
+  STEP_LABELS,
+  ValidationError,
+  generateReference,
+  describeRegistrationError,
+  validateRegistration
+} from '../../utils/registrationErrors.js'
 import { parseDateForStorage } from '../../utils/date.js'
 import { UserCircleIcon, CameraIcon } from '@heroicons/vue/24/outline'
 import AppLoading from '../../components/common/AppLoading.vue'
 
 const loading = ref(false)
 const loadingCrews = ref(false)
-const error = ref(null)
+const error = ref(null) // { kind, title, message, technical, reference, reporting, reported }
 const success = ref(false)
+const partialNotice = ref(null)
+const errorBoxRef = ref(null)
+const crewsError = ref('')
+const supportEmail = SUPPORT_EMAIL
 const photoFile = ref(null)
 const photoPreview = ref(null)
 const crews = ref([])
 
-onMounted(async () => {
+async function loadCrews() {
   loadingCrews.value = true
+  crewsError.value = ''
   try {
     crews.value = await crewService.getCrews(0, 200, { active: true })
   } catch (err) {
     console.error('Erro ao carregar turmas:', err)
+    const { message, technical } = describeRegistrationError(err, 'carregar_turmas')
+    crewsError.value = message
+    reportRegistrationError({
+      reference: generateReference(),
+      step: STEP_LABELS.carregar_turmas,
+      message,
+      technical
+    })
   } finally {
     loadingCrews.value = false
   }
-})
+}
+
+onMounted(loadCrews)
 
 function onPhotoChange(e) {
   const file = e.target.files?.[0]
@@ -341,34 +385,100 @@ const form = ref({
   useImage: true
 })
 
+function photoFileName(file) {
+  // O servidor rejeita nomes com acentos/parênteses; usa um nome seguro
+  const ext = (String(file.name || '').split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg'
+  return `photo-${Date.now()}.${ext}`
+}
+
+async function showSystemError(err, step, extra = {}) {
+  const reference = generateReference()
+  const { message, technical, code } = describeRegistrationError(err, step)
+  error.value = {
+    kind: 'system',
+    title: `Erro: ${STEP_LABELS[step] || 'cadastro'}`,
+    message,
+    technical,
+    reference,
+    reporting: true,
+    reported: false
+  }
+  nextTick(() => errorBoxRef.value?.scrollIntoView({ behavior: 'smooth', block: 'center' }))
+
+  const reported = await reportRegistrationError({
+    reference,
+    step: STEP_LABELS[step] || step,
+    message,
+    code,
+    technical,
+    form: {
+      name: form.value.name,
+      nameResponsible: form.value.nameResponsible,
+      email: form.value.email,
+      telephone: form.value.telephone
+    },
+    ...extra
+  })
+  if (error.value?.reference === reference) {
+    error.value = { ...error.value, reporting: false, reported }
+  }
+  return { reference, message, reported }
+}
+
 async function handleSubmit() {
   loading.value = true
   error.value = null
   success.value = false
+  partialNotice.value = null
 
+  let step = 'validacao'
   try {
+    validateRegistration(form.value, photoFile.value)
+
     // Preparar dados para envio
     const data = {
       ...form.value,
+      email: String(form.value.email).trim(),
       birthday: form.value.birthday ? parseDateForStorage(form.value.birthday) : null,
       // Campos de alergia
       allergy: form.value.hasAllergy ? form.value.allergy : ''
     }
-    
+
     // Remover hasAllergy do payload (apenas controle do formulário)
     delete data.hasAllergy
-    
-    // Adicionar foto se uma foi selecionada
+
+    // Enviar a foto antes, para identificar falhas desta etapa
     if (photoFile.value) {
-      data.photo = new Parse.File(photoFile.value.name, photoFile.value)
+      step = 'envio_foto'
+      const file = new Parse.File(photoFileName(photoFile.value), photoFile.value)
+      await file.save()
+      data.photo = file
     }
-    
+
     // Registro público: cria como pendente (isPublicRegistration = true)
-    await studentService.createStudent(data, true)
+    step = 'criacao_cadastro'
+    const student = await studentService.createStudent(data, true)
     success.value = true
-    // Fluxo termina aqui - apenas mostra a mensagem de agradecimento
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+
+    // Avisa a equipe por e-mail (não bloqueia nem afeta o cliente)
+    notifyRegistrationSuccess(student.id)
   } catch (err) {
-    error.value = err.message || 'Erro ao realizar cadastro'
+    if (err instanceof ValidationError) {
+      error.value = { kind: 'validation', title: 'Confira os dados', message: err.message }
+      nextTick(() => errorBoxRef.value?.scrollIntoView({ behavior: 'smooth', block: 'center' }))
+    } else if (err?.partialStudentId) {
+      // Matrícula criada, mas as turmas não foram vinculadas: o cliente vê sucesso e a equipe é avisada
+      success.value = true
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+      const result = await showSystemError(err, 'vinculo_turmas', { partialStudentId: err.partialStudentId })
+      error.value = null
+      partialNotice.value = { message: result.message, reference: result.reference }
+      notifyRegistrationSuccess(err.partialStudentId)
+    } else {
+      console.error(`Erro no cadastro (${step}):`, err)
+      await showSystemError(err, step)
+    }
   } finally {
     loading.value = false
   }

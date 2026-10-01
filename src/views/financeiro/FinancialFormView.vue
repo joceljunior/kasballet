@@ -146,7 +146,7 @@
         <button type="submit" :disabled="loading" class="btn-primary disabled:opacity-50">
           {{ loading ? 'Salvando...' : 'Salvar' }}
         </button>
-        <router-link to="/financeiro/lancamentos" class="btn-secondary">Cancelar</router-link>
+        <router-link :to="listLink" class="btn-secondary">Cancelar</router-link>
       </div>
     </form>
     </template>
@@ -180,6 +180,15 @@ const studentFilterText = ref('')
 const studentFilterInputRef = ref(null)
 
 const isEdit = computed(() => !!route.params.id && route.params.id !== 'novo')
+// Se veio da ficha da aluna/professora, volta para a listagem filtrada por ela
+const listLink = computed(() => {
+  const query = {}
+  if (!isEdit.value) {
+    if (route.query.studentId) query.studentId = String(route.query.studentId)
+    else if (route.query.teacherId) query.teacherId = String(route.query.teacherId)
+  }
+  return { path: '/financeiro/lancamentos', query }
+})
 const formSubtypes = computed(() => {
   const options = categoryStore.optionsForType(form.value.type)
   if (!form.value.subtype || options.some((o) => o.value === form.value.subtype)) return options
@@ -252,7 +261,7 @@ onMounted(async () => {
     if (isEdit.value) {
       const e = await financialStore.getEntryById(route.params.id)
       const [s, t] = await Promise.all([
-        studentService.getStudents(0, 500, { active: true }),
+        studentService.getStudents(0, 500, { active: true }, ['name']),
         teacherService.getTeachers()
       ])
       students.value = s || []
@@ -289,7 +298,7 @@ onMounted(async () => {
       skipClearWatchers.value = false
     } else {
       const [s, t] = await Promise.all([
-        studentService.getStudents(0, 500, { active: true }),
+        studentService.getStudents(0, 500, { active: true }, ['name']),
         teacherService.getTeachers()
       ])
       students.value = s || []
@@ -358,7 +367,7 @@ async function handleSubmit() {
       router.push('/financeiro/lancamentos')
     } else {
       await financialStore.createEntry(payload)
-      router.push('/financeiro/lancamentos')
+      router.push(listLink.value)
     }
   } catch (err) {
     error.value = err?.message || 'Erro ao salvar'

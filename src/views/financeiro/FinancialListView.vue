@@ -12,14 +12,23 @@
         <button type="button" class="btn-secondary" @click="monthCompareOpen = true">Comparativo</button>
         <router-link to="/financeiro" class="btn-secondary">Voltar</router-link>
         <router-link to="/financeiro/categorias" class="btn-secondary">Categorias</router-link>
-        <router-link to="/financeiro/lancamentos/novo" class="btn-primary">Novo Lançamento</router-link>
+        <router-link :to="newEntryLink" class="btn-primary">Novo Lançamento</router-link>
       </div>
     </div>
 
     <!-- Filtros -->
     <div class="card">
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
         <StudentFilterSelect v-model="filterStudentId" @change="applyFilters" />
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Professora</label>
+          <select v-model="filterTeacherId" @change="applyFilters" class="input">
+            <option value="">Todas as professoras</option>
+            <option v-for="t in teachers" :key="t.id" :value="t.id">
+              {{ t.get('username') }}{{ t.get('active') === false ? ' — Inativa' : '' }}
+            </option>
+          </select>
+        </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
           <select v-model="filterType" @change="applyFilters" class="input">
@@ -205,20 +214,24 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { useFinancialStore } from '../../stores/financial'
 import { useFinancialCategoryStore } from '../../stores/financialCategory'
-import { studentService, userRepository } from '../../services/index.js'
+import { studentService, teacherService, userRepository } from '../../services/index.js'
 import { formatDateBR } from '../../utils/date.js'
 import { CurrencyDollarIcon } from '@heroicons/vue/24/outline'
 import StudentFilterSelect from '../../components/common/StudentFilterSelect.vue'
 import AppLoading from '../../components/common/AppLoading.vue'
 import FinancialMonthCompareModal from '../../components/financeiro/FinancialMonthCompareModal.vue'
 
+const route = useRoute()
 const financialStore = useFinancialStore()
 const categoryStore = useFinancialCategoryStore()
 const pageLoading = ref(true)
 const monthCompareOpen = ref(false)
 const filterStudentId = ref('')
+const filterTeacherId = ref('')
+const teachers = ref([])
 const filterType = ref('')
 const filterStatus = ref('')
 const filterSubtype = ref('')
@@ -227,6 +240,13 @@ const filterDateTo = ref('')
 const studentMap = ref({})
 const teacherMap = ref({})
 const toDelete = ref(null)
+
+const newEntryLink = computed(() => {
+  const query = {}
+  if (filterStudentId.value) query.studentId = filterStudentId.value
+  else if (filterTeacherId.value) query.teacherId = filterTeacherId.value
+  return { path: '/financeiro/lancamentos/novo', query }
+})
 
 const filterSubtypes = computed(() => categoryStore.filterOptions(filterType.value))
 
@@ -278,6 +298,7 @@ async function loadMaps() {
 function syncFromStore() {
   const f = financialStore.filters
   filterStudentId.value = f.studentId || ''
+  filterTeacherId.value = f.teacherId || ''
   filterType.value = f.type || ''
   filterStatus.value = f.status || ''
   filterSubtype.value = f.subtype || ''
@@ -288,6 +309,7 @@ function syncFromStore() {
 async function applyFilters() {
   const f = {}
   if (filterStudentId.value) f.studentId = filterStudentId.value
+  if (filterTeacherId.value) f.teacherId = filterTeacherId.value
   if (filterType.value) f.type = filterType.value
   if (filterStatus.value) f.status = filterStatus.value
   if (filterSubtype.value) f.subtype = filterSubtype.value
@@ -299,6 +321,7 @@ async function applyFilters() {
 
 function clearFilters() {
   filterStudentId.value = ''
+  filterTeacherId.value = ''
   filterType.value = ''
   filterStatus.value = ''
   filterSubtype.value = ''
@@ -337,7 +360,25 @@ watch(filterType, () => {
 onMounted(async () => {
   try {
     await categoryStore.load()
-    syncFromStore()
+    try {
+      teachers.value = (await teacherService.getTeachers()) || []
+    } catch (_) {
+      teachers.value = []
+    }
+    const queryStudentId = route.query.studentId
+    const queryTeacherId = route.query.teacherId
+    if (queryStudentId || queryTeacherId) {
+      // Veio da ficha da aluna/professora: filtra apenas por ela
+      filterStudentId.value = queryStudentId ? String(queryStudentId) : ''
+      filterTeacherId.value = !queryStudentId && queryTeacherId ? String(queryTeacherId) : ''
+      filterType.value = ''
+      filterStatus.value = ''
+      filterSubtype.value = ''
+      filterDateFrom.value = ''
+      filterDateTo.value = ''
+    } else {
+      syncFromStore()
+    }
     await applyFilters()
   } finally {
     pageLoading.value = false

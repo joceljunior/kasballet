@@ -2,6 +2,9 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { studentService } from '../services/index.js'
 
+// Campos necessários na listagem; o restante é buscado ao abrir a ficha da aluna
+const LIST_FIELDS = ['name', 'birthday', 'photo', 'useImage', 'active', 'inactive']
+
 export const useStudentStore = defineStore('student', () => {
   const students = ref([])
   const studentCrewsMap = ref({}) // studentId -> Crew[]
@@ -24,17 +27,17 @@ export const useStudentStore = defineStore('student', () => {
       if (searchQuery.value.trim()) {
         const query = searchQuery.value.trim()
         ;[results, count] = await Promise.all([
-          studentService.searchStudents(query, currentPage.value, pageSize.value, filters.value),
+          studentService.searchStudents(query, currentPage.value, pageSize.value, filters.value, LIST_FIELDS),
           studentService.countSearchStudents(query, filters.value)
         ])
       } else if (filters.value.pending) {
         ;[results, count] = await Promise.all([
-          studentService.getPendingStudents(currentPage.value, pageSize.value),
+          studentService.getPendingStudents(currentPage.value, pageSize.value, LIST_FIELDS),
           studentService.countPendingStudents()
         ])
       } else {
         ;[results, count] = await Promise.all([
-          studentService.getStudents(currentPage.value, pageSize.value, filters.value),
+          studentService.getStudents(currentPage.value, pageSize.value, filters.value, LIST_FIELDS),
           studentService.countStudents(filters.value)
         ])
       }

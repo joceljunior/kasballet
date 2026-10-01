@@ -1,8 +1,5 @@
 <template>
   <div class="space-y-6 pb-20 md:pb-6">
-      <AppLoading v-if="pageLoading" card message="Carregando painel..." />
-
-      <template v-else>
       <div>
         <h1 class="text-2xl font-bold text-gray-900">
           Olá, {{ authStore.user?.get('username') }}!
@@ -16,7 +13,7 @@
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm text-gray-600">Total de Alunos</p>
-              <p class="text-2xl font-bold text-gray-900 mt-1">{{ stats.totalStudents || 0 }}</p>
+              <p class="text-2xl font-bold mt-1" :class="stats.totalStudents === null ? \'animate-pulse text-gray-300\' : \'text-gray-900\'">{{ stats.totalStudents ?? '···' }}</p>
             </div>
             <div class="bg-blue-100 p-3 rounded-full">
               <UserGroupIcon class="h-8 w-8 text-blue-600" />
@@ -28,7 +25,7 @@
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm text-gray-600">Turmas Ativas</p>
-              <p class="text-2xl font-bold text-gray-900 mt-1">{{ stats.totalCrews || 0 }}</p>
+              <p class="text-2xl font-bold mt-1" :class="stats.totalCrews === null ? \'animate-pulse text-gray-300\' : \'text-gray-900\'">{{ stats.totalCrews ?? '···' }}</p>
             </div>
             <div class="bg-green-100 p-3 rounded-full">
               <AcademicCapIcon class="h-8 w-8 text-green-600" />
@@ -40,7 +37,7 @@
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm text-gray-600">Professores</p>
-              <p class="text-2xl font-bold text-gray-900 mt-1">{{ stats.totalTeachers || 0 }}</p>
+              <p class="text-2xl font-bold mt-1" :class="stats.totalTeachers === null ? \'animate-pulse text-gray-300\' : \'text-gray-900\'">{{ stats.totalTeachers ?? '···' }}</p>
             </div>
             <div class="bg-purple-100 p-3 rounded-full">
               <UserIcon class="h-8 w-8 text-purple-600" />
@@ -52,7 +49,7 @@
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm text-gray-600">Alunos Pendentes</p>
-              <p class="text-2xl font-bold text-gray-900 mt-1">{{ stats.pendingStudents || 0 }}</p>
+              <p class="text-2xl font-bold mt-1" :class="stats.pendingStudents === null ? \'animate-pulse text-gray-300\' : \'text-gray-900\'">{{ stats.pendingStudents ?? '···' }}</p>
             </div>
             <div class="bg-yellow-100 p-3 rounded-full">
               <ClockIcon class="h-8 w-8 text-yellow-600" />
@@ -67,7 +64,7 @@
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm text-gray-600">Minhas Turmas</p>
-              <p class="text-2xl font-bold text-gray-900 mt-1">{{ stats.myCrews || 0 }}</p>
+              <p class="text-2xl font-bold mt-1" :class="stats.myCrews === null ? \'animate-pulse text-gray-300\' : \'text-gray-900\'">{{ stats.myCrews ?? '···' }}</p>
             </div>
             <div class="bg-green-100 p-3 rounded-full">
               <AcademicCapIcon class="h-8 w-8 text-green-600" />
@@ -79,7 +76,7 @@
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm text-gray-600">Chamadas Hoje</p>
-              <p class="text-2xl font-bold text-gray-900 mt-1">{{ stats.todayRegisters || 0 }}</p>
+              <p class="text-2xl font-bold mt-1" :class="stats.todayRegisters === null ? \'animate-pulse text-gray-300\' : \'text-gray-900\'">{{ stats.todayRegisters ?? '···' }}</p>
             </div>
             <div class="bg-blue-100 p-3 rounded-full">
               <ClipboardDocumentListIcon class="h-8 w-8 text-blue-600" />
@@ -89,7 +86,14 @@
       </div>
 
       <!-- Alunas Inadimplentes do Mês (Master) -->
-      <div v-if="authStore.isMaster && unpaidStudents.length > 0" class="space-y-3">
+      <div v-if="authStore.isMaster && unpaidLoading" class="card">
+        <h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2 mb-3">
+          <ExclamationTriangleIcon class="w-5 h-5 text-amber-500" />
+          Mensalidades Pendentes - {{ currentMonthName }}
+        </h2>
+        <AppLoading size="sm" inline message="Carregando mensalidades pendentes..." />
+      </div>
+      <div v-else-if="authStore.isMaster && unpaidStudents.length > 0" class="space-y-3">
         <div class="flex items-center justify-between">
           <h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
             <ExclamationTriangleIcon class="w-5 h-5 text-amber-500" />
@@ -158,7 +162,14 @@
       </div>
 
       <!-- Frequência: ausências e turmas sem chamada -->
-      <div v-if="showAttendanceSection" class="space-y-3">
+      <div v-if="showAttendanceSection && attendanceLoading" class="card">
+        <h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2 mb-3">
+          <ClipboardDocumentListIcon class="w-5 h-5 text-red-500" />
+          Frequência e Chamadas
+        </h2>
+        <AppLoading size="sm" inline message="Carregando frequência..." />
+      </div>
+      <div v-else-if="showAttendanceSection" class="space-y-3">
         <div class="flex items-center justify-between">
           <h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
             <ClipboardDocumentListIcon class="w-5 h-5 text-red-500" />
@@ -285,7 +296,14 @@
       </div>
 
       <!-- Contratos Vencendo (Semestral/Anual) -->
-      <div v-if="authStore.isMaster && expiringContracts.length > 0" class="space-y-3">
+      <div v-if="authStore.isMaster && expiringLoading" class="card">
+        <h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2 mb-3">
+          <ClockIcon class="w-5 h-5 text-orange-500" />
+          Contratos Próximos do Vencimento
+        </h2>
+        <AppLoading size="sm" inline message="Carregando contratos..." />
+      </div>
+      <div v-else-if="authStore.isMaster && expiringContracts.length > 0" class="space-y-3">
         <div class="flex items-center justify-between">
           <h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
             <ClockIcon class="w-5 h-5 text-orange-500" />
@@ -377,7 +395,6 @@
           </router-link>
         </div>
       </div>
-      </template>
     </div>
 </template>
 
@@ -399,15 +416,18 @@ import {
 import AppLoading from '../../components/common/AppLoading.vue'
 
 const authStore = useAuthStore()
-const pageLoading = ref(true)
+// null = ainda carregando (cada card/seção carrega de forma independente)
 const stats = ref({
-  totalStudents: 0,
-  totalCrews: 0,
-  totalTeachers: 0,
-  pendingStudents: 0,
-  myCrews: 0,
-  todayRegisters: 0
+  totalStudents: null,
+  totalCrews: null,
+  totalTeachers: null,
+  pendingStudents: null,
+  myCrews: null,
+  todayRegisters: null
 })
+const unpaidLoading = ref(true)
+const expiringLoading = ref(true)
+const attendanceLoading = ref(true)
 const unpaidStudents = ref([])
 const expiringContracts = ref([])
 const absentStudents = ref([])
@@ -521,52 +541,78 @@ function getPendencyClass(pendencyType) {
   return classes[pendencyType] || 'bg-amber-100 text-amber-800'
 }
 
-onMounted(async () => {
+async function loadStat(key, fn) {
   try {
-    if (authStore.isMaster) {
-      // Load master stats - usando contagens reais do banco + financeiro
-      const [totalStudents, totalCrews, teachers, pendingStudents, unpaid, expiring, attendance] = await Promise.all([
-        studentService.countActiveStudents(),
-        crewService.countActiveCrews(),
-        userRepository.findByRole('Professora', 1000, 0),
-        studentService.countPendingStudents(),
-        studentService.getStudentsWithoutPaymentThisMonth(),
-        studentService.getStudentsWithExpiringContracts(),
-        registerService.getDashboardAttendanceInsights()
-      ])
-      
-      stats.value = {
-        totalStudents,
-        totalCrews,
-        totalTeachers: teachers.length,
-        pendingStudents
-      }
-      
-      unpaidStudents.value = unpaid
-      expiringContracts.value = expiring
-      absentStudents.value = attendance.absentStudents
-      crewsWithoutRecentRegister.value = attendance.crewsWithoutRecentRegister
-    } else {
-      // Load teacher stats
-      const userId = authStore.user?.id
-      if (userId) {
-        const crews = await crewService.getCrewsByTeacher(userId, 0, 100, { active: true })
-        const crewIds = crews.map((c) => c.id)
-        const [attendance] = await Promise.all([
-          registerService.getDashboardAttendanceInsights(crewIds)
-        ])
-        stats.value = {
-          myCrews: crews.length,
-          todayRegisters: 0 // TODO: Implement
-        }
-        absentStudents.value = attendance.absentStudents
-        crewsWithoutRecentRegister.value = attendance.crewsWithoutRecentRegister
-      }
-    }
+    stats.value[key] = await fn()
   } catch (error) {
-    console.error('Error loading dashboard stats:', error)
+    console.error(`Erro ao carregar ${key}:`, error)
+    stats.value[key] = 0
+  }
+}
+
+async function loadUnpaid() {
+  try {
+    unpaidStudents.value = await studentService.getStudentsWithoutPaymentThisMonth()
+  } catch (error) {
+    console.error('Erro ao carregar mensalidades pendentes:', error)
   } finally {
-    pageLoading.value = false
+    unpaidLoading.value = false
+  }
+}
+
+async function loadExpiring() {
+  try {
+    expiringContracts.value = await studentService.getStudentsWithExpiringContracts()
+  } catch (error) {
+    console.error('Erro ao carregar contratos próximos do vencimento:', error)
+  } finally {
+    expiringLoading.value = false
+  }
+}
+
+async function loadAttendance(crewIds = null) {
+  try {
+    const attendance = await registerService.getDashboardAttendanceInsights(crewIds)
+    absentStudents.value = attendance.absentStudents
+    crewsWithoutRecentRegister.value = attendance.crewsWithoutRecentRegister
+  } catch (error) {
+    console.error('Erro ao carregar frequência:', error)
+  } finally {
+    attendanceLoading.value = false
+  }
+}
+
+async function loadTeacherDashboard() {
+  stats.value.todayRegisters = 0 // TODO: Implement
+  const userId = authStore.user?.id
+  if (!userId) {
+    stats.value.myCrews = 0
+    attendanceLoading.value = false
+    return
+  }
+  try {
+    const crews = await crewService.getCrewsByTeacher(userId, 0, 100, { active: true })
+    stats.value.myCrews = crews.length
+    await loadAttendance(crews.map((c) => c.id))
+  } catch (error) {
+    console.error('Erro ao carregar turmas da professora:', error)
+    stats.value.myCrews = 0
+    attendanceLoading.value = false
+  }
+}
+
+onMounted(() => {
+  if (authStore.isMaster) {
+    // Cada parte dispara sua própria busca e aparece assim que ficar pronta
+    loadStat('totalStudents', () => studentService.countActiveStudents())
+    loadStat('totalCrews', () => crewService.countActiveCrews())
+    loadStat('totalTeachers', () => userRepository.count({ Role: 'Professora' }))
+    loadStat('pendingStudents', () => studentService.countPendingStudents())
+    loadUnpaid()
+    loadExpiring()
+    loadAttendance()
+  } else {
+    loadTeacherDashboard()
   }
 })
 </script>

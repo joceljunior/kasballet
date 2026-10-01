@@ -100,7 +100,7 @@ const filteredStudents = computed(() => {
 async function loadStudents() {
   loading.value = true
   try {
-    const list = await studentService.getStudents(0, 500, { active: true })
+    const list = await studentService.getStudents(0, 500, { active: true }, ['name'])
     students.value = list || []
     if (props.modelValue && !students.value.some((x) => x.id === props.modelValue)) {
       try {

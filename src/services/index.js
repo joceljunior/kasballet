@@ -4,6 +4,9 @@ import { parseDateForStorage } from '../utils/date.js'
 import { DEFAULT_FINANCIAL_CATEGORIES, slugifyCategoryCode } from '../utils/financialCategories.js'
 import { DEFAULT_ITEM_CATEGORIES, normalizeAttributeFields, validateAttributeValue, matchesProductCategory } from '../utils/itemCategories.js'
 
+// Campos usados nos cards do dashboard (nome, foto, WhatsApp, valor e plano)
+const DASHBOARD_STUDENT_FIELDS = ['name', 'photo', 'telephone', 'valorMensalidade', 'tipoPlano']
+
 export class StudentService {
   constructor(repository) {
     this.repository = repository
@@ -12,17 +15,17 @@ export class StudentService {
   /**
    * Get students with pagination
    */
-  async getStudents(page = 0, pageSize = 30, filters = {}) {
+  async getStudents(page = 0, pageSize = 30, filters = {}, fields = null) {
     const skip = page * pageSize
-    return this.repository.findActive(pageSize, skip, filters)
+    return this.repository.findActive(pageSize, skip, filters, fields)
   }
 
   /**
    * Get pending students
    */
-  async getPendingStudents(page = 0, pageSize = 30) {
+  async getPendingStudents(page = 0, pageSize = 30, fields = null) {
     const skip = page * pageSize
-    return this.repository.findPending(pageSize, skip)
+    return this.repository.findPending(pageSize, skip, fields)
   }
 
   /**
@@ -71,7 +74,13 @@ export class StudentService {
     }
     const student = await this.repository.create(studentData)
     if (crewIds?.length) {
-      await studentCrewRepository.setForStudent(student.id, crewIds)
+      try {
+        await studentCrewRepository.setForStudent(student.id, crewIds)
+      } catch (err) {
+        // A aluna já foi criada; sinaliza para a tela tratar como cadastro parcial
+        err.partialStudentId = student.id
+        throw err
+      }
     }
     
     // Gerar lançamentos pendentes se tiver valorMensalidade e tipoPlano (apenas para alunos ativos)
@@ -297,42 +306,13 @@ export class StudentService {
   /**
    * Search students
    */
-  async searchStudents(query, page = 0, pageSize = 30, filters = {}) {
+  async searchStudents(query, page = 0, pageSize = 30, filters = {}, fields = null) {
     const skip = page * pageSize
-
-    if (filters.pending) {
-      const allPending = await this.repository.findPending(10000, 0)
-      const queryLower = query.toLowerCase()
-      const filtered = allPending.filter((student) => {
-        const name = student.get('name') || ''
-        const cpf = student.get('cpf') || ''
-        return name.toLowerCase().includes(queryLower) || cpf.includes(query)
-      })
-      filtered.sort((a, b) => {
-        const nameA = a.get('name') || ''
-        const nameB = b.get('name') || ''
-        return nameA.localeCompare(nameB, 'pt-BR')
-      })
-      return filtered.slice(skip, skip + pageSize)
-    }
-
-    const allResults = await this.repository.searchAll(query, filters)
-    return allResults.slice(skip, skip + pageSize)
+    return this.repository.search(query, pageSize, skip, filters, fields)
   }
 
   async countSearchStudents(query, filters = {}) {
-    if (filters.pending) {
-      const allPending = await this.repository.findPending(10000, 0)
-      const queryLower = query.toLowerCase()
-      return allPending.filter((student) => {
-        const name = student.get('name') || ''
-        const cpf = student.get('cpf') || ''
-        return name.toLowerCase().includes(queryLower) || cpf.includes(query)
-      }).length
-    }
-
-    const allResults = await this.repository.searchAll(query, filters)
-    return allResults.length
+    return this.repository.countSearch(query, filters)
   }
 
   async countStudents(filters = {}) {
@@ -407,7 +387,7 @@ export class StudentService {
     try {
       const now = new Date()
       
-      const activeStudents = await this.repository.findActive(10000, 0, { active: true })
+      const activeStudents = await this.repository.findActive(10000, 0, { active: true }, DASHBOARD_STUDENT_FIELDS)
       if (!activeStudents.length) return []
 
       const mensalStudents = activeStudents.filter(s => 
@@ -417,9 +397,11 @@ export class StudentService {
       const anualStudents = activeStudents.filter(s => s.get('tipoPlano') === 'Anual')
 
       const unpaidStudents = []
-      const mensalidadeCode = await financialCategoryService.resolveBehaviorCode('mensalidade')
-      const semestralCode = await financialCategoryService.resolveBehaviorCode('pagamento_semestral')
-      const anualCode = await financialCategoryService.resolveBehaviorCode('pagamento_anual')
+      const [mensalidadeCode, semestralCode, anualCode] = await Promise.all([
+        financialCategoryService.resolveBehaviorCode('mensalidade'),
+        financialCategoryService.resolveBehaviorCode('pagamento_semestral'),
+        financialCategoryService.resolveBehaviorCode('pagamento_anual')
+      ])
 
       // 1. MENSAL/MENSAL RECORRENTE: não pagou mês anterior → mensalidade em atraso
       if (mensalStudents.length > 0) {
@@ -434,7 +416,7 @@ export class StudentService {
           status: 'efetivado',
           dateReferenceFrom: startOfPreviousMonth,
           dateReferenceTo: endOfPreviousMonth
-        })
+        }, ['studentId'])
         const paidMensalIds = new Set(mensalidadeEntries.map(e => e.get('studentId')).filter(Boolean))
         
         mensalStudents.forEach(s => {
@@ -454,7 +436,7 @@ export class StudentService {
           status: 'efetivado',
           dateReferenceFrom: sixMonthsAgo,
           dateReferenceTo: now
-        })
+        }, ['studentId'])
         const paidSemestralIds = new Set(semestralEntries.map(e => e.get('studentId')).filter(Boolean))
         
         semestralStudents.forEach(s => {
@@ -474,7 +456,7 @@ export class StudentService {
           status: 'efetivado',
           dateReferenceFrom: oneYearAgo,
           dateReferenceTo: now
-        })
+        }, ['studentId'])
         const paidAnualIds = new Set(anualEntries.map(e => e.get('studentId')).filter(Boolean))
         
         anualStudents.forEach(s => {
@@ -504,7 +486,7 @@ export class StudentService {
       const anualCode = await financialCategoryService.resolveBehaviorCode('pagamento_anual')
 
       // Buscar todos os alunos ativos semestrais e anuais
-      const activeStudents = await this.repository.findActive(10000, 0, { active: true })
+      const activeStudents = await this.repository.findActive(10000, 0, { active: true }, DASHBOARD_STUDENT_FIELDS)
       const semestralStudents = activeStudents.filter(s => s.get('tipoPlano') === 'Semestral')
       const anualStudents = activeStudents.filter(s => s.get('tipoPlano') === 'Anual')
 
@@ -519,7 +501,7 @@ export class StudentService {
           status: 'efetivado',
           dateReferenceFrom: sixMonthsAgo,
           dateReferenceTo: fiveMonthsAgo
-        })
+        }, ['studentId'])
         const expiringSemestralIds = new Set(semestralEntries.map(e => e.get('studentId')).filter(Boolean))
         
         semestralStudents.forEach(s => {
@@ -540,7 +522,7 @@ export class StudentService {
           status: 'efetivado',
           dateReferenceFrom: twelveMonthsAgo,
           dateReferenceTo: elevenMonthsAgo
-        })
+        }, ['studentId'])
         const expiringAnualIds = new Set(anualEntries.map(e => e.get('studentId')).filter(Boolean))
         
         anualStudents.forEach(s => {
@@ -768,15 +750,18 @@ export class RegisterService {
         if (lastThreeByCrew[cid].length < 3) lastThreeByCrew[cid].push(reg)
       }
 
-      const absentStudents = []
-      for (const crew of crews) {
-        const lastRegisters = lastThreeByCrew[crew.id] || []
-        if (lastRegisters.length < 3) continue
+      // Turmas com 3+ chamadas: busca as alunas de todas em paralelo (só campos usados no card)
+      const crewsToCheck = crews.filter((crew) => (lastThreeByCrew[crew.id] || []).length >= 3)
+      const studentsByCrew = await Promise.all(
+        crewsToCheck.map((crew) => studentCrewRepository.findByCrew(crew.id, ['name', 'photo', 'telephone']))
+      )
 
-        const students = await studentCrewRepository.findByCrew(crew.id)
+      const absentStudents = []
+      crewsToCheck.forEach((crew, idx) => {
+        const lastRegisters = lastThreeByCrew[crew.id]
         const crewName = this._formatCrewLabel(crew)
 
-        for (const student of students) {
+        for (const student of studentsByCrew[idx]) {
           const absentInAll = lastRegisters.every((reg) =>
             this._isStudentAbsentInRegister(student.id, reg)
           )
@@ -784,7 +769,7 @@ export class RegisterService {
             absentStudents.push({ student, crew, crewName })
           }
         }
-      }
+      })
 
       absentStudents.sort((a, b) => {
         const nameCmp = (a.student.get('name') || '').localeCompare(b.student.get('name') || '', 'pt-BR')
