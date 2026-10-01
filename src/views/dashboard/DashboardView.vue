@@ -13,7 +13,7 @@
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm text-gray-600">Total de Alunos</p>
-              <p class="text-2xl font-bold mt-1" :class="stats.totalStudents === null ? \'animate-pulse text-gray-300\' : \'text-gray-900\'">{{ stats.totalStudents ?? '···' }}</p>
+              <p class="text-2xl font-bold mt-1" :class="stats.totalStudents === null ? 'animate-pulse text-gray-300' : 'text-gray-900'">{{ stats.totalStudents ?? '···' }}</p>
             </div>
             <div class="bg-blue-100 p-3 rounded-full">
               <UserGroupIcon class="h-8 w-8 text-blue-600" />
@@ -25,7 +25,7 @@
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm text-gray-600">Turmas Ativas</p>
-              <p class="text-2xl font-bold mt-1" :class="stats.totalCrews === null ? \'animate-pulse text-gray-300\' : \'text-gray-900\'">{{ stats.totalCrews ?? '···' }}</p>
+              <p class="text-2xl font-bold mt-1" :class="stats.totalCrews === null ? 'animate-pulse text-gray-300' : 'text-gray-900'">{{ stats.totalCrews ?? '···' }}</p>
             </div>
             <div class="bg-green-100 p-3 rounded-full">
               <AcademicCapIcon class="h-8 w-8 text-green-600" />
@@ -37,7 +37,7 @@
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm text-gray-600">Professores</p>
-              <p class="text-2xl font-bold mt-1" :class="stats.totalTeachers === null ? \'animate-pulse text-gray-300\' : \'text-gray-900\'">{{ stats.totalTeachers ?? '···' }}</p>
+              <p class="text-2xl font-bold mt-1" :class="stats.totalTeachers === null ? 'animate-pulse text-gray-300' : 'text-gray-900'">{{ stats.totalTeachers ?? '···' }}</p>
             </div>
             <div class="bg-purple-100 p-3 rounded-full">
               <UserIcon class="h-8 w-8 text-purple-600" />
@@ -49,7 +49,7 @@
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm text-gray-600">Alunos Pendentes</p>
-              <p class="text-2xl font-bold mt-1" :class="stats.pendingStudents === null ? \'animate-pulse text-gray-300\' : \'text-gray-900\'">{{ stats.pendingStudents ?? '···' }}</p>
+              <p class="text-2xl font-bold mt-1" :class="stats.pendingStudents === null ? 'animate-pulse text-gray-300' : 'text-gray-900'">{{ stats.pendingStudents ?? '···' }}</p>
             </div>
             <div class="bg-yellow-100 p-3 rounded-full">
               <ClockIcon class="h-8 w-8 text-yellow-600" />
@@ -64,7 +64,7 @@
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm text-gray-600">Minhas Turmas</p>
-              <p class="text-2xl font-bold mt-1" :class="stats.myCrews === null ? \'animate-pulse text-gray-300\' : \'text-gray-900\'">{{ stats.myCrews ?? '···' }}</p>
+              <p class="text-2xl font-bold mt-1" :class="stats.myCrews === null ? 'animate-pulse text-gray-300' : 'text-gray-900'">{{ stats.myCrews ?? '···' }}</p>
             </div>
             <div class="bg-green-100 p-3 rounded-full">
               <AcademicCapIcon class="h-8 w-8 text-green-600" />
@@ -76,7 +76,7 @@
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm text-gray-600">Chamadas Hoje</p>
-              <p class="text-2xl font-bold mt-1" :class="stats.todayRegisters === null ? \'animate-pulse text-gray-300\' : \'text-gray-900\'">{{ stats.todayRegisters ?? '···' }}</p>
+              <p class="text-2xl font-bold mt-1" :class="stats.todayRegisters === null ? 'animate-pulse text-gray-300' : 'text-gray-900'">{{ stats.todayRegisters ?? '···' }}</p>
             </div>
             <div class="bg-blue-100 p-3 rounded-full">
               <ClipboardDocumentListIcon class="h-8 w-8 text-blue-600" />
