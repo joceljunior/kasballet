@@ -304,16 +304,36 @@ onMounted(async () => {
       students.value = s || []
       teachers.value = t || []
 
-      if (route.query.studentId) {
+      const queryStudentId = route.query.studentId ? String(route.query.studentId) : ''
+      const queryTeacherId = route.query.teacherId ? String(route.query.teacherId) : ''
+
+      // Garante que a aluna/professora do link esteja na lista (pode ser inativa ou estar além do limite)
+      if (queryStudentId && !students.value.some((x) => x.id === queryStudentId)) {
+        try {
+          const one = await studentService.getStudentById(queryStudentId)
+          if (one) students.value = [one, ...students.value]
+        } catch (_) {}
+      }
+      if (queryTeacherId && !teachers.value.some((x) => x.id === queryTeacherId)) {
+        try {
+          const one = await teacherService.getTeacherById(queryTeacherId)
+          if (one) teachers.value = [one, ...teachers.value]
+        } catch (_) {}
+      }
+
+      // Os watchers de tipo/categoria limpam aluna e professora; ignora-os ao pré-preencher
+      skipClearWatchers.value = true
+      if (queryStudentId) {
         form.value.type = 'entrada'
         form.value.subtype = getBehaviorCode(categoryStore.categories, 'mensalidade') || 'mensalidade'
-        form.value.studentId = route.query.studentId
-      }
-      if (route.query.teacherId) {
+        form.value.studentId = queryStudentId
+      } else if (queryTeacherId) {
         form.value.type = 'saida'
         form.value.subtype = getBehaviorCode(categoryStore.categories, 'pagamento_professora') || 'pagamento'
-        form.value.teacherId = route.query.teacherId
+        form.value.teacherId = queryTeacherId
       }
+      await nextTick()
+      skipClearWatchers.value = false
     }
   } catch (err) {
     error.value = err?.message || 'Erro ao carregar'
