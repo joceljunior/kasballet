@@ -455,27 +455,6 @@ export class RegisterRepository extends BaseRepository {
   async findByDateRange(startDate, endDate, limit = 30, skip = 0) {
     return this.findRegisters(limit, skip, { dateFrom: startDate, dateTo: endDate })
   }
-
-  /**
-   * Find registers that include a given student in studentRegisters.
-   * studentRegisters: Array<{ studentId, present }>
-   */
-  async findByStudent(studentId, limit = 30, skip = 0) {
-    if (!studentId) return []
-    const query = new Parse.Query(this.ParseObject)
-    query.equalTo('studentRegisters.studentId', studentId)
-    query.descending('dateregister')
-    query.limit(limit)
-    query.skip(skip)
-    return query.find()
-  }
-
-  async countByStudent(studentId) {
-    if (!studentId) return 0
-    const query = new Parse.Query(this.ParseObject)
-    query.equalTo('studentRegisters.studentId', studentId)
-    return query.count()
-  }
 }
 
 export class FinancialCategoryRepository extends BaseRepository {

@@ -650,28 +650,43 @@ export class RegisterService {
   }
 
   /**
-   * Histórico de presença de uma aluna (últimas chamadas em que ela aparece).
+   * Histórico de presença de uma aluna nas turmas em que ela está vinculada.
    * Retorna Array<{ id, date, crewId, crewName, present }>
    */
   async getAttendanceHistoryByStudent(studentId, page = 0, pageSize = 20) {
     if (!studentId) return []
+
+    const crewsByStudent = await studentCrewRepository.findByStudents([{ id: studentId }])
+    const crews = crewsByStudent[studentId] || []
+    const crewIds = crews.map((c) => c.id).filter(Boolean)
+    if (!crewIds.length) return []
+
     const skip = page * pageSize
-    const registers = await this.repository.findByStudent(studentId, pageSize, skip)
+    const registers = await this.repository.findRegisters(pageSize, skip, { crewIds })
     if (!registers.length) return []
 
-    const crewIds = [...new Set(registers.map((r) => r.get('crewId')).filter(Boolean))]
-    const crews = await Promise.all(
-      crewIds.map((id) => crewRepository.findById(id).catch(() => null))
-    )
     const crewMap = {}
     for (const c of crews) {
-      if (c) crewMap[c.id] = c
+      crewMap[c.id] = c
+    }
+
+    // Garante nome de turmas que possam ter ficado de fora do select
+    const missingCrewIds = [...new Set(
+      registers.map((r) => r.get('crewId')).filter((id) => id && !crewMap[id])
+    )]
+    if (missingCrewIds.length) {
+      const extra = await Promise.all(
+        missingCrewIds.map((id) => crewRepository.findById(id).catch(() => null))
+      )
+      for (const c of extra) {
+        if (c) crewMap[c.id] = c
+      }
     }
 
     return registers.map((reg) => {
-      const arr = reg.get('studentRegisters') || []
-      const entry = arr.find((x) => x && x.studentId === studentId)
       const crewId = reg.get('crewId')
+      const arr = reg.get('studentRegisters') || []
+      const entry = arr.find((x) => x && String(x.studentId) === String(studentId))
       return {
         id: reg.id,
         date: reg.get('dateregister'),
