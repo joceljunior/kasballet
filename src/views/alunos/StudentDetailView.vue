@@ -184,6 +184,69 @@
           </div>
         </div>
 
+        <!-- SEÇÃO: Histórico de Presença -->
+        <div class="card">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+            </svg>
+            Histórico de Presença
+            <span class="text-xs font-normal text-gray-500">(últimas 20 chamadas)</span>
+          </h2>
+
+          <div v-if="attendanceHistory.length" class="grid grid-cols-3 gap-3 mb-4">
+            <div class="rounded-lg bg-gray-50 px-3 py-2 text-center">
+              <p class="text-xs text-gray-500">Chamadas</p>
+              <p class="text-lg font-semibold text-gray-900">{{ attendanceStats.total }}</p>
+            </div>
+            <div class="rounded-lg bg-green-50 px-3 py-2 text-center">
+              <p class="text-xs text-green-700">Presenças</p>
+              <p class="text-lg font-semibold text-green-800">{{ attendanceStats.present }}</p>
+            </div>
+            <div class="rounded-lg bg-red-50 px-3 py-2 text-center">
+              <p class="text-xs text-red-700">Ausências</p>
+              <p class="text-lg font-semibold text-red-800">{{ attendanceStats.absent }}</p>
+            </div>
+          </div>
+
+          <AppLoading v-if="attendanceLoading" size="sm" inline message="Carregando presença..." />
+          <div v-else-if="!attendanceHistory.length" class="text-sm text-gray-500 py-2">Nenhuma chamada registrada para esta aluna.</div>
+          <div v-else class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Turma</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Presença</th>
+                  <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase"></th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-200">
+                <tr v-for="row in attendanceHistory" :key="row.id">
+                  <td class="px-3 py-2 text-sm text-gray-900">{{ formatDateBR(row.date) || '—' }}</td>
+                  <td class="px-3 py-2 text-sm text-gray-600">{{ row.crewName || '—' }}</td>
+                  <td class="px-3 py-2 text-sm">
+                    <span
+                      :class="row.present ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'"
+                      class="px-2 py-0.5 rounded-full text-xs font-medium"
+                    >
+                      {{ row.present ? 'Presente' : 'Ausente' }}
+                    </span>
+                  </td>
+                  <td class="px-3 py-2 text-sm text-right">
+                    <router-link :to="`/chamadas/${row.id}`" class="text-green-700 hover:text-green-900 text-xs font-medium">
+                      Ver
+                    </router-link>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div v-if="attendanceStats.total" class="mt-3 text-xs text-gray-500">
+            Frequência neste período: {{ attendanceStats.rate }}%
+          </div>
+        </div>
+
         <!-- SEÇÃO: Histórico de Pagamentos (somente Master) -->
         <div v-if="authStore.isMaster" class="card">
           <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
@@ -266,11 +329,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
 import { useFinancialCategoryStore } from '../../stores/financialCategory'
-import { studentService, financialEntryService } from '../../services/index.js'
+import { studentService, financialEntryService, registerService } from '../../services/index.js'
 import { formatDateBR } from '../../utils/date.js'
 import { UserCircleIcon } from '@heroicons/vue/24/outline'
 import AppLoading from '../../components/common/AppLoading.vue'
@@ -283,7 +346,17 @@ const student = ref(null)
 const studentCrews = ref([])
 const paymentHistory = ref([])
 const paymentLoading = ref(false)
+const attendanceHistory = ref([])
+const attendanceLoading = ref(false)
 const loading = ref(true)
+
+const attendanceStats = computed(() => {
+  const total = attendanceHistory.value.length
+  const present = attendanceHistory.value.filter((r) => r.present).length
+  const absent = total - present
+  const rate = total ? Math.round((present / total) * 100) : 0
+  return { total, present, absent, rate }
+})
 
 function formatMoney(v) {
   const n = Number(v)
@@ -326,21 +399,38 @@ onMounted(async () => {
     student.value = await studentService.getStudentById(route.params.id)
     const map = await studentService.getCrewsForStudents([student.value])
     studentCrews.value = map[student.value.id] || []
+
+    attendanceLoading.value = true
+    const attendancePromise = registerService
+      .getAttendanceHistoryByStudent(student.value.id, 0, 20)
+      .then((rows) => { attendanceHistory.value = rows || [] })
+      .catch((e) => {
+        console.warn('Erro ao carregar histórico de presença:', e)
+        attendanceHistory.value = []
+      })
+      .finally(() => { attendanceLoading.value = false })
+
+    let paymentPromise = Promise.resolve()
     if (authStore.isMaster) {
       paymentLoading.value = true
-      try {
-        paymentHistory.value = await financialEntryService.getEntriesByStudent(student.value.id, 0, 5)
-      } catch (e) {
-        console.warn('Erro ao carregar histórico financeiro:', e)
-        paymentHistory.value = []
-      }
+      paymentPromise = financialEntryService
+        .getEntriesByStudent(student.value.id, 0, 5)
+        .then((rows) => { paymentHistory.value = rows || [] })
+        .catch((e) => {
+          console.warn('Erro ao carregar histórico financeiro:', e)
+          paymentHistory.value = []
+        })
+        .finally(() => { paymentLoading.value = false })
     }
+
+    await Promise.all([attendancePromise, paymentPromise])
   } catch (error) {
     console.error('Error loading student:', error)
     router.push('/alunos')
   } finally {
     loading.value = false
     paymentLoading.value = false
+    attendanceLoading.value = false
   }
 })
 

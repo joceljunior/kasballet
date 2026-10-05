@@ -650,6 +650,39 @@ export class RegisterService {
   }
 
   /**
+   * Histórico de presença de uma aluna (últimas chamadas em que ela aparece).
+   * Retorna Array<{ id, date, crewId, crewName, present }>
+   */
+  async getAttendanceHistoryByStudent(studentId, page = 0, pageSize = 20) {
+    if (!studentId) return []
+    const skip = page * pageSize
+    const registers = await this.repository.findByStudent(studentId, pageSize, skip)
+    if (!registers.length) return []
+
+    const crewIds = [...new Set(registers.map((r) => r.get('crewId')).filter(Boolean))]
+    const crews = await Promise.all(
+      crewIds.map((id) => crewRepository.findById(id).catch(() => null))
+    )
+    const crewMap = {}
+    for (const c of crews) {
+      if (c) crewMap[c.id] = c
+    }
+
+    return registers.map((reg) => {
+      const arr = reg.get('studentRegisters') || []
+      const entry = arr.find((x) => x && x.studentId === studentId)
+      const crewId = reg.get('crewId')
+      return {
+        id: reg.id,
+        date: reg.get('dateregister'),
+        crewId,
+        crewName: this._formatCrewLabel(crewMap[crewId]),
+        present: entry?.present === true
+      }
+    })
+  }
+
+  /**
    * Get register by ID
    */
   async getRegisterById(id) {
